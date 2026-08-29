@@ -22,7 +22,7 @@ function toggleQuickWalletPanel(){
   if(!body||!btn)return;
   let opening=body.classList.contains("hidden");
   body.classList.toggle("hidden");
-  btn.textContent=opening?"👛 حركة محفظة سريعة (دوس للإغلاق)":"👛 حركة محفظة سريعة (دوس للفتح)";
+  btn.textContent=opening?"💳 حركة محفظة سريعة (دوس للإغلاق)":"💳 حركة محفظة سريعة (دوس للفتح)";
   btn.classList.toggle("quick-order-open",opening);
   if(opening)setTimeout(()=>body.scrollIntoView({behavior:"smooth",block:"nearest"}),50);
 }

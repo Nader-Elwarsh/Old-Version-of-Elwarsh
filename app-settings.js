@@ -66,7 +66,9 @@ function settingsPage(){
   brandSettings.innerHTML=s.brands.map((b,i)=>`<div class="setting-row drag-item" draggable="true" data-drag-kind="brands" data-drag-index="${i}"><span class="drag-handle" title="سحب للترتيب">☷</span><span class="setting-name"><b>${i+1}. ${esc(b)}</b></span><span class="compact-actions"><input class="order-number" type="number" min="1" max="${s.brands.length}" value="${i+1}" title="رقم الترتيب" onchange="setListPosition('brands',${i},this.value)"><button class="secondary mini-action" onclick="renameBrand('${esc(b)}')">✏️</button><button class="secondary mini-action" onclick="deleteBrand('${esc(b)}')">🗑️</button></span></div>`).join("");
   partCategorySettings.innerHTML=s.partCats.map((b,i)=>`<div class="setting-row drag-item" draggable="true" data-drag-kind="partCats" data-drag-index="${i}"><span class="drag-handle" title="سحب للترتيب">☷</span><span class="setting-name"><b>${i+1}. ${esc(b)}</b></span><span class="compact-actions"><input class="order-number" type="number" min="1" max="${s.partCats.length}" value="${i+1}" title="رقم الترتيب" onchange="setListPosition('partCats',${i},this.value)"><button class="secondary mini-action" onclick="renamePartCategory('${esc(b)}')">✏️</button><button class="secondary mini-action" onclick="deletePartCategory('${esc(b)}')">🗑️</button></span></div>`).join("");
   let host=document.getElementById("settingsDynamic");
-  if(host)host.innerHTML=`<section class="panel setting-list-panel"><div class="page-head"><h2>🛠️ دورة حالات أمر الشغل</h2></div><div class="hint">الحالات (جديد / جاري التنفيذ / مكتمل / ملغي) وحالات الورشة (غير مطلوب / تم السحب / تم التسليم) بقت دورة معتمدة وثابتة، ومش قابلة للتعديل من هنا. الأولوية اتشالت خالص من أوامر الشغل. راجع ملف WORK_ORDER_LIFECYCLE_APPROVED.md لتفاصيل الدورة والانتقالات المسموحة.</div></section>`+returnWindowSettingHtml()+[["executionPlaces","أماكن التنفيذ","📍"],["paymentStatuses","حالات الدفع","💳"],["units","وحدات القياس","📏"],["addressTypes","أنواع العناوين","🏠"],["orderTags","التصنيف اليدوي لأوامر الشغل","🏷️"],["expenseCategories","تصنيفات المصاريف","🧯"],["wallets","المحافظ (محفظتي، محافظ الموبايلات، إنستاباي...)","👛"],["walletCategories","تصنيفات حركة المحافظ","🏷️"]].map(x=>listEditorHtml(...x)).join("");
+  if(host)host.innerHTML=`<section class="panel setting-list-panel"><div class="page-head"><h2>🛠️ دورة حالات أمر الشغل</h2></div><div class="hint">الحالات (جديد / جاري التنفيذ / مكتمل / ملغي) وحالات الورشة (غير مطلوب / تم السحب / تم التسليم) بقت دورة معتمدة وثابتة، ومش قابلة للتعديل من هنا. الأولوية اتشالت خالص من أوامر الشغل. راجع ملف WORK_ORDER_LIFECYCLE_APPROVED.md لتفاصيل الدورة والانتقالات المسموحة.</div></section>`+returnWindowSettingHtml()+[["executionPlaces","أماكن التنفيذ","📍"],["paymentStatuses","حالات الدفع","💳"],["units","وحدات القياس","📏"],["addressTypes","أنواع العناوين","🏠"],["orderTags","التصنيف اليدوي لأوامر الشغل","🏷️"],["expenseCategories","تصنيفات المصاريف","🧯"]].map(x=>listEditorHtml(...x)).join("");
+  let walletHost=document.getElementById("walletSettingsDynamic");
+  if(walletHost)walletHost.innerHTML=[["wallets","المحافظ / الحسابات (محفظتي، فودافون كاش، أورنج كاش، إنستاباي... أضف أي حساب تحب)","💳"],["walletCategories","تصنيفات حركة المحافظ (شخصي / تشغيل / تحصيل عميل...)","🏷️"]].map(x=>inlineListEditorHtml(...x)).join("");
   let rtHost=document.getElementById("routeThemeSettings");
   if(rtHost)rtHost.innerHTML=routeThemeSettingsHtml();
   bindSortableSettings();
@@ -102,5 +104,64 @@ function deletePartCategory(c){if(!confirm(`حذف تصنيف «${c}»؟`))retur
 function addSettingItem(key){let v=prompt("أضف عنصر جديد");if(!v)return;v=v.trim();if(!v)return;let s=settings();s[key]=s[key]||[];if(!s[key].includes(v))s[key].push(v);put(K.s,s);settingsPage()}
 function renameSettingItem(key,i){let s=settings(),a=s[key]||[];if(i<0||i>=a.length)return;let n=prompt("الاسم الجديد",a[i]);if(!n||n===a[i])return;n=n.trim();if(!n)return;a[i]=n;s[key]=a;put(K.s,s);settingsPage()}
 function deleteSettingItem(key,i){let s=settings(),a=s[key]||[];if(i<0||i>=a.length)return;if(!confirm(`حذف «${a[i]}»؟`))return;a.splice(i,1);s[key]=a;put(K.s,s);settingsPage()}
+
+/* =========================================================
+   محرّر قوائم بديل — بدون prompt()/confirm() (مستخدم للمحافظ وتصنيفاتها)
+   =========================================================
+   السبب: addSettingItem/renameSettingItem/deleteSettingItem فوق دول
+   بيعتمدوا بالكامل على window.prompt() و window.confirm(). بعض
+   المتصفحات المدمجة (زي واجهة WebView جوه تطبيق مثبّت كـ PWA على بعض
+   الأجهزة، أو المتصفح المصغّر جوه واتساب/فيسبوك) بتمنع الـ popup ده
+   بصمت تام: بترجع null/false على طول من غير أي رسالة خطأ في الكونسول
+   حتى، فبيبان الزرار "مش شغال" مع إنه فعليًا بينفذ لكن بياخد قيمة فاضية
+   ويوقف بصمت. عشان كده قسم المحافظ تحديدًا بيستخدم حقول <input> مباشرة
+   بدل الـ popup، فمفيش أي اعتماد على إذا كان المتصفح بيسمح بيه أو لأ.
+   ========================================================= */
+function inlineListEditorHtml(title,key,icon){
+  let a=settings()[key]||[];
+  return `<section class="panel setting-list-panel">
+    <div class="page-head"><h2>${icon} ${esc(title)}</h2></div>
+    <div class="inline-add-row">
+      <input type="text" id="newInlineItem-${esc(key)}" placeholder="اسم جديد" onkeydown="if(event.key==='Enter'){event.preventDefault();addInlineListItem('${esc(key)}')}">
+      <button type="button" class="primary mini-action" onclick="addInlineListItem('${esc(key)}')">➕ إضافة</button>
+    </div>
+    <div class="sortable-list">
+      ${a.length?a.map((x,i)=>`<div class="setting-row inline-edit-row">
+        <span class="setting-name"><b>${i+1}.</b></span>
+        <input type="text" class="inline-edit-input" value="${esc(x)}" onchange="renameInlineListItem('${esc(key)}',${i},this.value)">
+        <span class="compact-actions">
+          <button type="button" class="secondary mini-action" ${i===0?"disabled":""} onclick="moveInlineListItem('${esc(key)}',${i},-1)">⬆️</button>
+          <button type="button" class="secondary mini-action" ${i===a.length-1?"disabled":""} onclick="moveInlineListItem('${esc(key)}',${i},1)">⬇️</button>
+          <button type="button" class="secondary mini-action" onclick="confirmClick(this,()=>deleteInlineListItem('${esc(key)}',${i}))">🗑️</button>
+        </span>
+      </div>`).join(""):`<div class="hint">لا توجد عناصر بعد. أضف واحد من الحقل فوق.</div>`}
+    </div>
+  </section>`;
+}
+// تأكيد حذف بدون confirm(): أول ضغطة تحوّل الزرار لـ "تأكيد الحذف؟" لمدة
+// 3 ثواني، وثاني ضغطة (في نفس المهلة) هي اللي فعليًا بتنفذ الحذف.
+function confirmClick(btn,fn){
+  if(btn.dataset.confirming==="1"){fn();return}
+  btn.dataset.confirming="1";let orig=btn.textContent;btn.textContent="تأكيد الحذف؟";btn.classList.add("danger-btn");
+  clearTimeout(btn._confirmTimer);
+  btn._confirmTimer=setTimeout(()=>{btn.dataset.confirming="0";btn.textContent=orig;btn.classList.remove("danger-btn")},3000);
+}
+function addInlineListItem(key){
+  let el=document.getElementById("newInlineItem-"+key);let v=(el?.value||"").trim();if(!v)return;
+  let s=settings();s[key]=s[key]||[];if(!s[key].includes(v))s[key].push(v);put(K.s,s);
+  settingsPage();
+  let refocus=document.getElementById("newInlineItem-"+key);refocus?.focus();
+}
+function renameInlineListItem(key,i,v){
+  v=(v||"").trim();let s=settings(),a=s[key]||[];if(i<0||i>=a.length)return;
+  if(!v){settingsPage();return} // رجوع للاسم القديم لو مسحه فاضي بدل ما يحفظ قيمة فاضية
+  a[i]=v;s[key]=a;put(K.s,s);settingsPage();
+}
+function deleteInlineListItem(key,i){
+  let s=settings(),a=s[key]||[];if(i<0||i>=a.length)return;a.splice(i,1);s[key]=a;put(K.s,s);settingsPage();
+}
+function moveInlineListItem(key,i,dir){
+  let s=settings(),a=s[key]||[],j=i+dir;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];s[key]=a;put(K.s,s);settingsPage();
+}
 
 

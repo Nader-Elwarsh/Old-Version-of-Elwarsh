@@ -80,9 +80,25 @@
     }
   }
 
+  // ترحيل 3 → 4: إضافة محفظتي "فودافون كاش" و"أورنج كاش" الافتراضيتين
+  // لأي حساب كان موجود قبل إضافتهم لقائمة الافتراضي، من غير ما نمسح أو
+  // نعدّل أي محفظة موجودة بالفعل عند المستخدم (بنضيف بس لو مش موجودين
+  // بنفس الاسم أصلاً).
+  function migrate3to4() {
+    let K = window.K;
+    let s = get(K.s, null);
+    if (!s) return; // مفيش إعدادات محفوظة أصلاً؛ default الجديد في shared-data.js هيتطبق عادي
+    s.wallets = Array.isArray(s.wallets) ? s.wallets : [];
+    ["محفظة فودافون كاش", "محفظة أورنج كاش"].forEach(w => {
+      if (!s.wallets.includes(w)) s.wallets.push(w);
+    });
+    put(K.s, s);
+  }
+
   const MIGRATIONS = [
     { from: 1, to: 2, run: migrate1to2 },
-    { from: 2, to: 3, run: migrate2to3 }
+    { from: 2, to: 3, run: migrate2to3 },
+    { from: 3, to: 4, run: migrate3to4 }
   ];
 
   async function runMigrations() {

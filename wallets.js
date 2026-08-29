@@ -34,6 +34,16 @@ function walletCategoryTotals(){
   });
   return Object.entries(map).map(([category,v])=>({category,...v}));
 }
+// حساب "مصاريفي الشخصية" و"مصاريف الورشة (تشغيل)" كرقمين ثابتين وواضحين
+// فوق الصفحة على طول، بدل ما يكونوا مدفونين جوه تفصيل قابل للطي.
+// بيعتمدوا على تصنيف الحركة نفسه ("مصروف شخصي" / "مصروف تشغيل")، فأي
+// حركة (يدوية أو مربوطة بأمر شغل) بنفس التصنيف بتتحسب هنا تلقائيًا.
+function personalVsWorkshopTotals(){
+  let cat=walletCategoryTotals();
+  let personal=cat.find(c=>c.category==="مصروف شخصي")||{in:0,out:0};
+  let workshop=cat.find(c=>c.category==="مصروف تشغيل")||{in:0,out:0};
+  return {personal:personal.out||0, workshop:workshop.out||0};
+}
 
 /* ---------------------------------------------------------------------
    حركة يدوية (من صفحة المحافظ نفسها أو من زر الإدخال السريع بالرئيسية)
@@ -129,7 +139,7 @@ function renderWallets(){
   let wallets=settings().wallets||[],categories=settings().walletCategories||[];
   let filterWallet=document.getElementById("wFilterWallet")?.value||"",
       filterCategory=document.getElementById("wFilterCategory")?.value||"";
-  let overview=walletsOverview(),catTotals=walletCategoryTotals();
+  let overview=walletsOverview(),catTotals=walletCategoryTotals(),pvw=personalVsWorkshopTotals();
   let today=localDateKey(new Date());
   let list=walletTxEntries()
     .filter(x=>(!filterWallet||x.wallet===filterWallet)&&(!filterCategory||x.category===filterCategory))
@@ -138,11 +148,15 @@ function renderWallets(){
     <div class="treasury-balance">
       <span>إجمالي أرصدة كل المحافظ</span><b>${walletsTotalBalance().toFixed(2)} ج</b>
     </div>
+    <div class="wallet-account-cards">
+      <div class="kv"><b>🙋 حساب مصاريفي الشخصية</b>${pvw.personal.toFixed(2)} ج</div>
+      <div class="kv"><b>🔧 حساب مصاريف الورشة (تشغيل)</b>${pvw.workshop.toFixed(2)} ج</div>
+    </div>
     <div class="profile-grid" style="margin:10px 0 14px">
-      ${overview.length?overview.map(w=>`<div class="kv"><b>👛 ${esc(w.name)}</b>${w.balance.toFixed(2)} ج</div>`).join(""):`<div class="hint">لا توجد محافظ بعد. أضفها من ⚙️ الإعدادات ← المحافظ.</div>`}
+      ${overview.length?overview.map(w=>`<div class="kv"><b>💳 ${esc(w.name)}</b>${w.balance.toFixed(2)} ج</div>`).join(""):`<div class="hint">لا توجد محافظ بعد. أضفها من ⚙️ الإعدادات ← المحافظ والحسابات.</div>`}
     </div>
     <details class="expense-panel">
-      <summary>📊 ملخص حسب نوع الحركة (شخصي / تشغيل / تحصيل عميل...)</summary>
+      <summary>📊 ملخص كل تصنيف حركة على حدة (شخصي / تشغيل / تحصيل عميل...)</summary>
       <div class="profile-grid">
         ${catTotals.length?catTotals.map(c=>`<div class="kv"><b>${esc(c.category)}</b>وارد ${c.in.toFixed(2)} ج · صادر ${c.out.toFixed(2)} ج</div>`).join(""):`<div class="hint">لا توجد حركات بعد.</div>`}
       </div>
@@ -170,7 +184,7 @@ function renderWallets(){
     ${list.length?list.map(x=>`<div class="treasury-row ${x.type}">
       <div class="treasury-row-main">
         <b>${esc(x.reason||"—")}</b>
-        <small>${esc(new Date((x.date||today)+"T"+(x.time||"00:00")).toLocaleString("ar-EG"))} • 👛 ${esc(x.wallet||"—")} • 🏷️ ${esc(x.category||"أخرى")}${x.source==="order-link"?" • 🔗 أمر شغل":""}</small>
+        <small>${esc(new Date((x.date||today)+"T"+(x.time||"00:00")).toLocaleString("ar-EG"))} • 💳 ${esc(x.wallet||"—")} • 🏷️ ${esc(x.category||"أخرى")}${x.source==="order-link"?" • 🔗 أمر شغل":""}</small>
         ${x.note?`<small>📝 ${esc(x.note)}</small>`:""}
       </div>
       <div class="treasury-row-amount ${x.type}">${x.type==="in"?"+":"−"}${(+x.amount||0).toFixed(2)} ج</div>
