@@ -58,7 +58,9 @@ function editTreasuryEntry(entryId){
   put(K.tr,a);renderTreasury();
 }
 function deleteTreasuryEntry(entryId){
-  if(!confirm("حذف هذه الحركة من كشف الخزنة؟"))return;
+  let a0=arr(K.tr),e0=a0.find(x=>x.id===entryId);
+  let msg=e0&&e0.source==="transfer"?"هذه حركة تحويل مرتبطة بحركة مقابلة في المحفظة. حذفها من هنا لن يحذف الحركة المقابلة تلقائيًا. تأكيد الحذف؟":"حذف هذه الحركة من كشف الخزنة؟";
+  if(!confirm(msg))return;
   let a=arr(K.tr),idx=a.findIndex(x=>x.id===entryId);if(idx<0)return;
   if(a[idx].refKey==="opening-balance"){alert("رصيد الافتتاح يُعدل من قسم الرصيد الافتتاحي ولا يُحذف من هنا.");return}
   a.splice(idx,1);put(K.tr,a);renderTreasury();
@@ -80,7 +82,8 @@ function renderTreasury(){
     <div class="treasury-balance ${balance<0?"negative":""}">
       <span>رصيد درج الخزنة الحالي</span><b>${balance.toFixed(2)} ج</b>
     </div>
-    <div class="hint" style="margin:10px 0">🔒 هذا الرصيد مستقل تمامًا عن حسابات أوامر الشغل وقطع الغيار ومصاريف التشغيل. أي مبلغ هنا لا يتغير إلا بحركة خزنة يدوية أو الرصيد الافتتاحي.</div>
+    <div class="hint" style="margin:10px 0">🔒 هذا الرصيد مستقل تمامًا عن حسابات أوامر الشغل وقطع الغيار ومصاريف التشغيل. أي مبلغ هنا لا يتغير إلا بحركة خزنة يدوية أو الرصيد الافتتاحي أو تحويل من/إلى محفظة.</div>
+    ${typeof walletTransferWidgetHtml==="function"?walletTransferWidgetHtml():""}
     <div class="treasury-actions">
       <div class="form-grid">
         <label>المبلغ<input id="trAmount" type="number" step="0.01" min="0" placeholder="0.00"></label>
