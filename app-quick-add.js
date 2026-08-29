@@ -15,6 +15,32 @@ function initQuickOrder(){
   sel.onchange=()=>fillDevice(document.getElementById("qoDevice"),sel.value);
   setupQuickForms();
 }
+
+/* حركة محفظة سريعة من الرئيسية — نفس فكرة "أمر شغل سريع" بالظبط بس للمحافظ. */
+function toggleQuickWalletPanel(){
+  let body=document.getElementById("quickWalletBody"),btn=document.getElementById("quickWalletToggleBtn");
+  if(!body||!btn)return;
+  let opening=body.classList.contains("hidden");
+  body.classList.toggle("hidden");
+  btn.textContent=opening?"👛 حركة محفظة سريعة (دوس للإغلاق)":"👛 حركة محفظة سريعة (دوس للفتح)";
+  btn.classList.toggle("quick-order-open",opening);
+  if(opening)setTimeout(()=>body.scrollIntoView({behavior:"smooth",block:"nearest"}),50);
+}
+function initQuickWallet(){
+  let walletEl=document.getElementById("qwWallet"),catEl=document.getElementById("qwCategory");
+  if(!walletEl)return;
+  let s=settings();
+  walletEl.innerHTML=(s.wallets||[]).map(w=>`<option>${esc(w)}</option>`).join("");
+  catEl.innerHTML=(s.walletCategories||[]).map(c=>`<option>${esc(c)}</option>`).join("");
+}
+function quickAddWalletTx(type){
+  if(typeof addWalletManual!=="function")return;
+  let entry=addWalletManual(type,"qw");
+  if(!entry)return;
+  document.getElementById("qwAmount").value="";
+  document.getElementById("qwReason").value="";
+  if(typeof renderWallets==="function")renderWallets();
+}
 function saveQuickCustomerHome(){
   let name=document.getElementById('qoName')?.value.trim(),phone=document.getElementById('qoPhone')?.value.trim();
   if(!name||!phone)return alert('اكتب اسم العميل والتليفون أولاً.');
@@ -69,7 +95,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
   // لازم الترحيل (migrations.js) يخلص قبل أول رندر بيقرأ حقل photo،
   // عشان ميحصلش سباق بين "لسه base64" و"بقى مرجع IndexedDB".
   if(window.runMigrations){try{await window.runMigrations()}catch(e){console.error("[app] فشل تشغيل الترحيلات",e)}}
-  settings();normalizeOrderNumbers();renderDash();monthReport();document.getElementById("reportMonth")?.addEventListener("change",financeReport);document.getElementById("reportWeek")?.addEventListener("change",financeReport);initCustomers();customerProfile();initDevices();deviceProfile();initRequests();requestProfile();initParts();partProfile();initTasks();settingsPage();renderTreasury();initQuickOrder();initRoutePage();initFollowupPage()
+  settings();normalizeOrderNumbers();renderDash();monthReport();document.getElementById("reportMonth")?.addEventListener("change",financeReport);document.getElementById("reportWeek")?.addEventListener("change",financeReport);initCustomers();customerProfile();initDevices();deviceProfile();initRequests();requestProfile();initParts();partProfile();initTasks();settingsPage();renderTreasury();initQuickOrder();initQuickWallet();initRoutePage();initFollowupPage()
 })
 
 // Quick-create relations: create the missing entity without leaving the current workflow.

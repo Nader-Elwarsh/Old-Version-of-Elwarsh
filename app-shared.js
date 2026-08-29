@@ -151,6 +151,7 @@ function markPaidAndClose(i){
   if(!r||r.closed||r.paid)return;
   if(r.status!=="مكتمل"){alert("اجعل حالة أمر الشغل «مكتمل» أولًا.");return}
   if(!confirm("تأكيد استلام كامل قيمة الأمر وإغلاقه نهائيًا؟ بعد التأكيد لن يمكن التعديل."))return;
+  let wallet=document.getElementById("rCloseWallet")?.value||"";
   let now=new Date().toISOString();
   let collected=Math.max(0,(+r.total||0)-(+r.deposit||0));
   r.paid=true;
@@ -158,8 +159,10 @@ function markPaidAndClose(i){
   r.paidAt=now;
   r.closed=true;
   r.closedAt=now;
+  r.closeWallet=wallet;
   put(K.r,a);
   if(typeof syncTreasuryForOrderClose==="function")syncTreasuryForOrderClose(r,collected);
+  if(typeof syncWalletForOrderClose==="function")syncWalletForOrderClose(r,collected,wallet);
   location.reload();
 }
 function closeOrder(i){markPaidAndClose(i)}
