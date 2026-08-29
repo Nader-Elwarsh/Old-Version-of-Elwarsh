@@ -1,0 +1,50 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#001b4d"><link rel="manifest" href="manifest.json?v=11.4.1"><link rel="icon" type="image/png" sizes="192x192" href="icon-192-v11-4-1.png"><link rel="apple-touch-icon" href="icon-192-v11-4-1.png"><title>الورشة الفنية | النظام المصغر</title><link rel="stylesheet" href="style.css"></head><body>
+<header><div class="brand"><img class="brand-logo" src="icon-192-v11-4-1.png" alt="شعار الورشة الفنية"><div><h1>الورشة الفنية</h1><p>نظام إدارة الورشة المصغر</p></div></div><button id="installAppBtn" class="secondary hidden" type="button" onclick="installWorkshopApp()">📲 تثبيت التطبيق</button></header>
+<main>
+<section class="dashboard"><div class="dash-head"><h2>📊 ملخص الورشة</h2><span class="hint">اضغط أي رقم للدخول مباشرة لتفاصيله</span></div><div id="dashboard"></div></section>
+<section class="panel" id="quickOrderPanel"><button type="button" id="quickOrderToggleBtn" class="quick-order-toggle" onclick="toggleQuickOrderPanel()">⚡ أمر شغل سريع (دوس للفتح)</button>
+<div id="quickOrderBody" class="hidden">
+<p class="hint">اختر العميل والجهاز واكتب العطل، والباقي (الأولوية، الموعد، الحساب، قطع الغيار) تظبطه بعدين من صفحة الأمر نفسها. العميل أو الجهاز جديد؟ سجّله من هنا على طول من غير ما تسيب الصفحة.</p>
+<div class="form-grid">
+<label class="wide">العميل<div class="select-add"><select id="qoCustomer"></select><button type="button" class="secondary mini-action quick-add-btn" data-opens="qoCustomerBox" onclick="toggleQuickAdd('qoCustomerBox')">➕ عميل</button></div></label>
+<section id="qoCustomerBox" class="quick-add hidden wide"><h3>➕ إضافة عميل سريع</h3><div class="form-grid"><label>اسم العميل<input id="qoName"></label><label>التليفون<input id="qoPhone" inputmode="tel"></label><label>المركز<select id="qoCenter"></select></label><label>القرية<select id="qoVillage"></select></label><label>الشارع / علامة مميزة <small>اختياري</small><input id="qoStreet"></label></div><div class="actions"><button type="button" class="primary" onclick="saveQuickCustomerHome()">💾 حفظ العميل واختياره</button><button type="button" class="secondary" onclick="closeQuickAdd('qoCustomerBox')">إلغاء</button></div></section>
+<label class="wide">الجهاز<div class="select-add"><select id="qoDevice"></select><button type="button" class="secondary mini-action quick-add-btn" data-opens="qoDeviceBox" onclick="toggleQuickAdd('qoDeviceBox')">➕ جهاز</button></div></label>
+<section id="qoDeviceBox" class="quick-add hidden wide"><h3>➕ إضافة جهاز سريع</h3><div class="form-grid"><label>نوع الجهاز<select id="qoType"></select></label><label>التصنيف<select id="qoCategory"></select></label><label>الماركة<select id="qoBrand"></select></label><label>الموديل <small>اختياري</small><input id="qoModel"></label></div><div class="actions"><button type="button" class="primary" onclick="saveQuickDeviceHome()">💾 حفظ الجهاز واختياره</button><button type="button" class="secondary" onclick="closeQuickAdd('qoDeviceBox')">إلغاء</button></div></section>
+<label class="wide">وصف العطل<textarea id="qoFault" placeholder="مثال: تاخر برنامج الغسالة"></textarea></label>
+</div>
+<div class="actions"><button type="button" class="primary" onclick="quickCreateRequest()">⚡ إنشاء أمر الشغل وفتحه</button><a class="secondary" href="requests.html?add=1">🛠️ فورم كامل</a></div>
+</div>
+</section>
+<div class="grid">
+<a class="card card-accent-blue" href="customers.html"><i>👤</i><div class="card-text"><b>العملاء</b><span>ملفات 360° والعناوين والأجهزة وأوامر الشغل</span></div></a>
+<a class="card card-accent-teal" href="devices.html"><i>🔧</i><div class="card-text"><b>الأجهزة</b><span>الأنواع والتصنيفات والماركات وملفات الأجهزة</span></div></a>
+<a class="card card-accent-orange" href="requests.html"><i>🛠️</i><div class="card-text"><b>أوامر الشغل</b><span>التشغيل والحساب وقطع الغيار والتحصيل والإغلاق</span></div></a>
+<a class="card card-accent-green" href="inventory.html"><i>📦</i><div class="card-text"><b>المخزن</b><span>القطع والمواقع والحركات والتكلفة والمكسب</span></div></a>
+<a class="card card-accent-cyan" href="route.html"><i>🗺️</i><div class="card-text"><b>خط سير اليوم</b><span>مواعيد اليوم والمتأخرة مجمّعة حسب المركز</span></div></a>
+<a class="card card-accent-red" href="followup.html"><i>⏳</i><div class="card-text"><b>متابعة العملاء</b><span>العملاء الساكتين اللي محتاجين تواصل</span></div></a>
+<a class="card card-accent-gold" href="treasury.html"><i>💵</i><div class="card-text"><b>الخزنة</b><span>درج نقدي مستقل وحركات الوارد والصرف وكشف الخزنة</span></div></a>
+<a class="card card-accent-purple" href="reports.html"><i>📊</i><div class="card-text"><b>التقارير والتحليلات</b><span>تشغيل ومالية وعملاء وأجهزة ومخزن وورشة وخزنة ومهام</span></div></a><a class="card card-accent-purple" href="settings.html"><i>⚙️</i><div class="card-text"><b>إعدادات النظام</b><span>المراكز والقرى وأنواع الأجهزة والماركات وتصنيفات المخزن</span></div></a>
+</div>
+<section class="report" id="reportSection">
+  <div class="dash-head"><h2>📈 كشف الحساب</h2></div>
+  <div class="report-mode-toggle">
+    <button type="button" id="modeMonthBtn" class="secondary mini-action active-track" onclick="setReportMode('month')">📆 شهري</button>
+    <button type="button" id="modeWeekBtn" class="secondary mini-action" onclick="setReportMode('week')">🗓️ أسبوعي (الاثنين‑السبت)</button>
+  </div>
+  <input id="reportMonth" type="month">
+  <input id="reportWeek" type="week" class="hidden">
+  <div id="monthlyReport"></div>
+  <details class="expense-panel">
+    <summary>🧯 مصاريف التشغيل</summary>
+    <div class="form-grid expense-form">
+      <label>التاريخ<input id="expDate" type="date"></label>
+      <label>التصنيف<select id="expCategory"></select></label>
+      <label>المبلغ<input id="expAmount" type="number" step="0.01" min="0" placeholder="0.00"></label>
+      <label class="wide">ملاحظة<input id="expNote" placeholder="اختياري"></label>
+    </div>
+    <button type="button" class="primary expense-save" onclick="addExpense()">💾 حفظ المصروف</button>
+    <div id="expenseList"></div>
+  </details>
+</section>
+</main><script src="notif-shared.js"></script>
+  <script src="shared-data.js"></script><script src="global-search.js"></script><script src="image-store.js"></script><script src="migrations.js"></script><script src="treasury.js"></script><script src="tasks.js"></script><script src="app-shared.js"></script><script src="app-dashboard-reports.js"></script><script src="app-customers.js"></script><script src="app-devices.js"></script><script src="app-requests.js"></script><script src="app-settings-lists.js"></script><script src="app-parts.js"></script><script src="app-settings.js"></script><script src="app-delete-tools.js"></script><script src="app-route-followup.js"></script><script src="app-data-management.js"></script><script src="app-quick-add.js"></script><script src="app-notifications-bootstrap.js"></script></body></html>

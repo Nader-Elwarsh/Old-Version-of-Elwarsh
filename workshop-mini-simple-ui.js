@@ -1,0 +1,739 @@
+/* =========================================================
+   الورشة الفنية — واجهة بسيطة وغير مزدحمة
+   V11.2.6 — Simple UI layer
+   لا تغيّر نموذج البيانات؛ فقط تنظّم العرض والتصفح.
+   ========================================================= */
+(function () {
+  "use strict";
+
+  const state = {
+    customers: false,
+    devices: false,
+    parts: false,
+    requests: false,
+    requestBucket: "",
+    partBucket: "",
+    partCategory: "",
+    customerBucket: "",
+    deviceBucket: ""
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const CATEGORY_ICONS = {
+    washer: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="2" width="18" height="20" rx="2"/><circle cx="7" cy="5.3" r="0.6" fill="currentColor" stroke="none"/><circle cx="10" cy="5.3" r="0.6" fill="currentColor" stroke="none"/><circle cx="12" cy="14" r="5.4"/><circle cx="12" cy="14" r="2.5"/></svg>`,
+    fridge: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="5" y1="8" x2="19" y2="8"/><line x1="16" y1="4" x2="16" y2="6.3"/><line x1="16" y1="10.5" x2="16" y2="13.8"/></svg>`,
+    heater: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="5"/><line x1="9.3" y1="7.5" x2="14.7" y2="7.5"/><line x1="9.3" y1="11.5" x2="14.7" y2="11.5"/></svg>`,
+    compressor: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.6"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></svg>`,
+    ac: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="6" rx="2"/><path d="M8 9h8"/><line x1="5.5" y1="15" x2="5.5" y2="19"/><line x1="12" y1="15" x2="12" y2="20"/><line x1="18.5" y1="15" x2="18.5" y2="19"/></svg>`,
+    oven: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><circle cx="8" cy="9" r="1.6"/><circle cx="16" cy="9" r="1.6"/><rect x="6" y="14" width="12" height="4" rx="1"/></svg>`,
+    fan: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16l-3 6H7L4 4z"/><line x1="12" y1="10" x2="12" y2="14"/><rect x="9" y="14" width="6" height="7" rx="1"/></svg>`,
+    microwave: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><rect x="4" y="7.5" width="12" height="9" rx="1"/><line x1="19" y1="8" x2="19" y2="10"/><circle cx="19" cy="13" r="0.9" fill="currentColor" stroke="none"/></svg>`,
+    box: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>`
+  };
+  const categoryIcon = (cat) => {
+    const c = String(cat || "");
+    if (/غسال/.test(c)) return CATEGORY_ICONS.washer;
+    if (/ثلاج|فريزر/.test(c)) return CATEGORY_ICONS.fridge;
+    if (/سخان|غلاي/.test(c)) return CATEGORY_ICONS.heater;
+    if (/كمبروسر|كمبريسور/.test(c)) return CATEGORY_ICONS.compressor;
+    if (/تكييف|مكيف/.test(c)) return CATEGORY_ICONS.ac;
+    if (/بوتاجاز|فرن/.test(c)) return CATEGORY_ICONS.oven;
+    if (/شفاط/.test(c)) return CATEGORY_ICONS.fan;
+    if (/مايكروويف/.test(c)) return CATEGORY_ICONS.microwave;
+    return CATEGORY_ICONS.box;
+  };
+  // rows/save/esc2: كانت بتعيد تعريف نفس منطق القراءة/الكتابة والـ escaping
+  // اللي في app.js بالظبط (JSON.parse/localStorage مباشرة). دلوقتي بتنادي
+  // على النسخة الموحّدة في shared-data.js (لازم يتحمّل قبل الملف ده).
+  const rows = (key) => arr(key);
+  const save = (key, value) => put(key, value);
+  const esc2 = (v) => esc(v);
+  const customerRows = () => rows("wf_c");
+  const deviceRows = () => rows("wf_d");
+  const requestRows = () => rows("wf_r");
+  const partRows = () => rows("wf_p");
+
+  function dateKey(value) {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "";
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  }
+
+  function todayKey() {
+    return dateKey(new Date());
+  }
+
+  function locationForOrder(r) {
+    const c = customerRows().find(x => x.id === r.customerId) || {};
+    let a = c.mainAddress || {};
+    if (r.addressKey === "extra" && c.extraAddress) a = c.extraAddress;
+    return {
+      center: a.center || "بدون مركز",
+      village: a.village || "بدون قرية",
+      street: a.street || ""
+    };
+  }
+
+  function orderIsCompleted(r) {
+    return !!r.closed || r.status === "مكتمل";
+  }
+
+  function orderIsToday(r) {
+    return !!r.visit && dateKey(r.visit) === todayKey() && !r.closed && r.status !== "ملغي";
+  }
+
+  function orderIsWorkshop(r) {
+    return r.executionPlace === "الورشة" ||
+      (r.workshopStatus && r.workshopStatus !== "غير مطلوب" && r.workshopStatus !== "تم التسليم");
+  }
+
+  function orderIsParts(r) {
+    return r.partsWaiting === true || r.partsWaiting === "yes";
+  }
+
+  function orderIsOverdue(r) {
+    return !!r.visit &&
+      dateKey(r.visit) < todayKey() &&
+      !orderIsCompleted(r) &&
+      r.status !== "ملغي";
+  }
+
+  function simpleButton(label, icon, action, cls="") {
+    return `<button type="button" class="simple-tile ${cls}" onclick="${action}"><span>${icon}</span><b>${label}</b></button>`;
+  }
+
+  function activeOrdersForCustomer(cid) {
+    return requestRows().filter(r => r.customerId === cid && !orderIsCompleted(r) && r.status !== "ملغي");
+  }
+
+  function activeOrdersForDevice(did) {
+    return requestRows().filter(r => r.deviceId === did && !orderIsCompleted(r) && r.status !== "ملغي");
+  }
+
+  function hasWorkshopDeviceForCustomer(cid) {
+    return deviceRows().some(d => d.customerId === cid && requestRows().some(r =>
+      r.deviceId === d.id && orderIsWorkshop(r) && !orderIsCompleted(r)
+    ));
+  }
+
+  function hasWorkshopDevice(did) {
+    return requestRows().some(r => r.deviceId === did && orderIsWorkshop(r) && !orderIsCompleted(r));
+  }
+
+  function customerCityGroup(c) {
+    const a = c.mainAddress || {};
+    return (typeof villageGroupOf === "function" ? villageGroupOf(a.center || "", a.village || "") : "village") === "city" ? "city" : "village";
+  }
+
+  function customerHasUnpaid(cid) {
+    return requestRows().some(r => r.customerId === cid && !r.closed && Math.max(0, (+r.total || 0) - (+r.deposit || 0)) > 0);
+  }
+
+  function lastOrderTime(list) {
+    const dates = list.map(r => new Date(r.closedAt || r.visit || r.createdAt || 0).getTime()).filter(t => !Number.isNaN(t) && t > 0);
+    return dates.length ? Math.max(...dates) : null;
+  }
+
+  const STALE_DAYS = 60;
+
+  function customerIsStale(c) {
+    const orders = requestRows().filter(r => r.customerId === c.id);
+    if (!orders.length) return false;
+    const active = orders.some(r => !orderIsCompleted(r) && r.status !== "ملغي");
+    if (active) return false;
+    const last = lastOrderTime(orders);
+    if (last === null) return false;
+    return (Date.now() - last) / 86400000 >= STALE_DAYS;
+  }
+
+  function deviceIsRecurring(d) {
+    return requestRows().filter(r => r.deviceId === d.id).length >= 2;
+  }
+
+  /* ---------- العملاء ---------- */
+  window.showAllCustomers = function () {
+    state.customers = true;
+    $("customerSearch")?.classList.remove("hidden");
+    renderCustomers();
+  };
+
+  window.hideAllCustomers = function () {
+    state.customers = false;
+    if ($("customerSearch")) $("customerSearch").classList.add("hidden");
+    renderCustomers();
+  };
+
+  window.showCustomerBucket = function (bucket) {
+    state.customers = true;
+    $("customerSearch")?.classList.remove("hidden");
+    state.customerBucket = bucket;
+    renderCustomers();
+  };
+
+  function customerBucketMatch(c, bucket) {
+    const orders = requestRows().filter(r => r.customerId === c.id);
+    const active = orders.some(r => !orderIsCompleted(r) && r.status !== "ملغي");
+    const workshop = hasWorkshopDeviceForCustomer(c.id);
+    if (bucket === "active") return active;
+    if (bucket === "workshop") return workshop;
+    if (bucket === "completed") return orders.length > 0 && !active && orders.some(r => orderIsCompleted(r));
+    if (bucket === "none") return orders.length === 0;
+    if (bucket === "city") return customerCityGroup(c) === "city";
+    if (bucket === "village") return customerCityGroup(c) === "village";
+    if (bucket === "stale") return customerIsStale(c);
+    if (bucket === "unpaid") return customerHasUnpaid(c.id);
+    return true;
+  }
+
+  defineOverride("renderCustomers", "workshop-mini-simple-ui.js", function () {
+    const el = $("customerList");
+    if (!el) return;
+    const all = customerRows();
+
+    if (!state.customers) {
+      const cnt = (b) => all.filter(c => customerBucketMatch(c, b)).length;
+      el.innerHTML = `
+        <section class="simple-home">
+          <div class="simple-summary-title"><b>👤 العملاء</b><span>${all.length} إجمالي</span></div>
+          <div class="bucket-group-label">حسب الحالة</div>
+          <div class="simple-stat-grid">
+            ${simpleButton(`عليه أمر مفتوح (${cnt("active")})`, "🛠️", "showCustomerBucket('active')", "")}
+            ${simpleButton(`جهاز في الورشة (${cnt("workshop")})`, "🏭", "showCustomerBucket('workshop')", "")}
+            ${simpleButton(`كل أوامره مكتملة (${cnt("completed")})`, "✅", "showCustomerBucket('completed')", "")}
+            ${simpleButton(`بدون أي أمر (${cnt("none")})`, "🆕", "showCustomerBucket('none')", "")}
+          </div>
+          <div class="bucket-group-label">حسب المنطقة</div>
+          <div class="simple-stat-grid">
+            ${simpleButton(`عملاء المدن (${cnt("city")})`, "🏙️", "showCustomerBucket('city')", "")}
+            ${simpleButton(`عملاء القرى (${cnt("village")})`, "🌾", "showCustomerBucket('village')", "")}
+          </div>
+          <div class="bucket-group-label">متابعة</div>
+          <div class="simple-stat-grid">
+            ${simpleButton(`لم يتردد من فترة (${cnt("stale")})`, "⏳", "showCustomerBucket('stale')", "")}
+            ${simpleButton(`متبقي غير محصل (${cnt("unpaid")})`, "💰", "showCustomerBucket('unpaid')", "")}
+          </div>
+          <div class="simple-main-actions">
+            ${simpleButton("كل العملاء", "👥", "showAllCustomers()", "primary-tile")}
+          </div>
+        </section>`;
+      return;
+    }
+
+    const q = ($("customerSearch")?.value || "").toLowerCase().trim();
+    const bucket = state.customerBucket || "";
+    const filtered = all.filter(c => {
+      if (bucket && !customerBucketMatch(c, bucket)) return false;
+      const text = [c.name, c.phone, c.phone2, c.nickname,
+        addressText(c.mainAddress || {}), addressText(c.extraAddress || {})]
+        .filter(Boolean).join(" ").toLowerCase();
+      return !q || text.includes(q);
+    });
+    const title = {
+      active: "عليه أمر مفتوح حاليًا", workshop: "لديه جهاز في الورشة", completed: "كل أوامره مكتملة",
+      none: "بدون أي أمر شغل", city: "🏙️ عملاء المدن", village: "🌾 عملاء القرى",
+      stale: "⏳ لم يتردد من فترة", unpaid: "💰 عليه متبقي غير محصل"
+    }[bucket] || "كل العملاء";
+    el.innerHTML = `
+      <div class="simple-list-head"><b>${title}</b><button type="button" class="secondary small-btn" onclick="hideAllCustomers()">رجوع للملخص</button></div>
+      ${filtered.length ? filtered.map(c => {
+        const ds = deviceRows().filter(d => d.customerId === c.id).length;
+        const rs = requestRows().filter(r => r.customerId === c.id).length;
+        const ao = activeOrdersForCustomer(c.id).length;
+        const hw = hasWorkshopDeviceForCustomer(c.id);
+        return `<div class="simple-record"><div class="simple-record-icon">👤</div><div class="simple-record-main">
+          <a href="customer.html?id=${c.id}"><b>${esc2(c.name)}</b></a><span>📞 ${esc2(c.phone || "—")}</span>
+          <small>🔧 ${ds} أجهزة • 🛠️ ${rs} أوامر${ao ? ` • 🔴 ${ao} فعال` : ""}${hw ? " • 🏭 جهاز في الورشة" : ""}</small>
+        </div><div class="simple-record-actions"><a class="secondary small-btn" href="customer.html?id=${c.id}">فتح</a><button class="danger-btn small-btn" onclick="deleteCustomerRecord('${c.id}')">حذف</button></div></div>`;
+      }).join("") : `<div class="item">لا توجد نتائج.</div>`}`;
+  });
+
+  /* ---------- الأجهزة ---------- */
+  window.showAllDevices = function () {
+    state.devices = true; state.deviceBucket = "";
+    $("deviceSearch")?.classList.remove("hidden"); renderDevices();
+  };
+
+  window.hideAllDevices = function () {
+    state.devices = false; state.deviceBucket = "";
+    if ($("deviceSearch")) $("deviceSearch").classList.add("hidden"); renderDevices();
+  };
+
+  window.showDeviceBucket = function (bucket) {
+    state.devices = true; state.deviceBucket = bucket;
+    $("deviceSearch")?.classList.remove("hidden"); renderDevices();
+  };
+
+  function deviceBucketMatch(d, bucket) {
+    const orders = requestRows().filter(r => r.deviceId === d.id);
+    const active = orders.some(r => !orderIsCompleted(r) && r.status !== "ملغي");
+    const workshop = hasWorkshopDevice(d.id);
+    if (bucket === "active") return active;
+    if (bucket === "workshop") return workshop;
+    if (bucket === "completed") return orders.length > 0 && !active && orders.some(r => orderIsCompleted(r));
+    if (bucket === "none") return orders.length === 0;
+    if (bucket === "recurring") return deviceIsRecurring(d);
+    if (bucket.indexOf("type:") === 0) return (d.type || "") === bucket.slice(5);
+    return true;
+  }
+
+  defineOverride("renderDevices", "workshop-mini-simple-ui.js", function () {
+    const el = $("deviceList");
+    if (!el) return;
+    const all = deviceRows();
+    if (!state.devices) {
+      const cnt = (b) => all.filter(d => deviceBucketMatch(d, b)).length;
+      const types = [...new Set(all.map(d => d.type).filter(Boolean))];
+      el.innerHTML = `<section class="simple-home"><div class="simple-summary-title"><b>🔧 الأجهزة</b><span>${all.length} إجمالي</span></div>
+        <div class="bucket-group-label">حسب الحالة</div>
+        <div class="simple-stat-grid">
+          ${simpleButton(`عليه أمر مفتوح (${cnt("active")})`, "🛠️", "showDeviceBucket('active')", "")}
+          ${simpleButton(`موجود في الورشة (${cnt("workshop")})`, "🏭", "showDeviceBucket('workshop')", "")}
+          ${simpleButton(`كل أوامره مكتملة (${cnt("completed")})`, "✅", "showDeviceBucket('completed')", "")}
+          ${simpleButton(`بدون أي أمر (${cnt("none")})`, "🆕", "showDeviceBucket('none')", "")}
+        </div>
+        <div class="bucket-group-label">متابعة</div>
+        <div class="simple-stat-grid">
+          ${simpleButton(`متكرر الأعطال (${cnt("recurring")})`, "🔁", "showDeviceBucket('recurring')", "")}
+        </div>
+        ${types.length ? `<div class="bucket-group-label">حسب النوع</div>
+        <div class="simple-stat-grid">
+          ${types.map(t => simpleButton(`${esc2(t)} (${cnt("type:"+t)})`, categoryIcon(t), `showDeviceBucket('type:${esc2(t)}')`, "")).join("")}
+        </div>` : ""}
+        <div class="simple-main-actions">${simpleButton("كل الأجهزة", "🔧", "showAllDevices()", "primary-tile")}</div></section>`;
+      return;
+    }
+    const q = ($("deviceSearch")?.value || "").toLowerCase().trim();
+    const bucket = state.deviceBucket || "";
+    const filtered = all.filter(d => {
+      if (bucket && !deviceBucketMatch(d, bucket)) return false;
+      const c = customerRows().find(x => x.id === d.customerId) || {};
+      const text = [c.name,c.phone,d.type,d.category,d.brand,d.model,d.desc,addressText(c.mainAddress||{}),addressText(c.extraAddress||{})].filter(Boolean).join(" ").toLowerCase();
+      return !q || text.includes(q);
+    });
+    const title = bucket.indexOf("type:") === 0 ? `📦 ${bucket.slice(5)}` :
+      ({active:"عليه أمر مفتوح حاليًا", workshop:"موجود في الورشة", completed:"كل أوامره مكتملة", none:"بدون أي أمر شغل", recurring:"🔁 متكرر الأعطال"}[bucket] || "كل الأجهزة");
+    el.innerHTML = `<div class="simple-list-head"><b>${title}</b><button type="button" class="secondary small-btn" onclick="hideAllDevices()">رجوع للملخص</button></div>
+      ${filtered.length ? filtered.map(d => `<div class="simple-record"><div class="simple-record-icon">🔧</div><div class="simple-record-main"><a href="device.html?id=${d.id}"><b>${esc2(d.type)} — ${esc2(d.brand)}</b></a><span>${esc2(d.category||"—")} • ${esc2(d.model||"بدون موديل")}</span><small>👤 ${esc2(customerName(d.customerId))}${activeOrdersForDevice(d.id).length ? ` • 🔴 ${activeOrdersForDevice(d.id).length} أمر فعال` : ""}${hasWorkshopDevice(d.id) ? " • 🏭 في الورشة" : ""}</small></div><div class="simple-record-actions"><a class="secondary small-btn" href="device.html?id=${d.id}">فتح</a><button class="danger-btn small-btn" onclick="deleteDeviceRecord('${d.id}')">حذف</button></div></div>`).join("") : `<div class="item">لا توجد نتائج.</div>`}`;
+  });
+
+  /* ---------- المخزن ---------- */
+  window.showAllParts = function () {
+    state.parts = true;
+    state.partBucket = "";
+    state.partCategory = "";
+    $("partSearch")?.classList.remove("hidden");
+    renderParts();
+  };
+
+  window.showLowStockParts = function () {
+    state.parts = true;
+    state.partBucket = "low";
+    state.partCategory = "";
+    $("partSearch")?.classList.add("hidden");
+    renderParts();
+  };
+
+  window.showPartsCategory = function (cat) {
+    state.parts = true;
+    state.partBucket = "";
+    state.partCategory = cat;
+    $("partSearch")?.classList.add("hidden");
+    renderParts();
+  };
+
+  window.hideAllParts = function () {
+    state.parts = false;
+    state.partBucket = "";
+    state.partCategory = "";
+    if ($("partSearch")) $("partSearch").classList.add("hidden");
+    renderParts();
+  };
+
+  /* النسخة دي بتستبدل نسخة app-parts.js الأساسية على نفس الصفحات. أي تعديل
+     في بيانات القطعة المعروضة لازم يترجم للنسختين. */
+  window.renderParts = function () {
+    const el = $("partList");
+    if (!el) return;
+    const all = partRows().filter(p => !p.archived);
+
+    if (!state.parts) {
+      const cats = {};
+      all.forEach(p => {
+        const key = p.category || "أخرى";
+        cats[key] = (cats[key] || 0) + 1;
+      });
+      const low = all.filter(p => (+p.qty || 0) <= (+p.min || 0)).length;
+      const cards = Object.entries(cats).slice(0, 6).map(([k,n]) =>
+        `<button type="button" class="simple-stat" onclick="showPartsCategory('${k.replace(/'/g,"\\'")}')"><span>${categoryIcon(k)}</span><b>${esc2(k)}</b><strong>${n}</strong><small>قطعة</small></button>`
+      ).join("");
+
+      el.innerHTML = `
+        <section class="simple-home">
+          <div class="simple-summary-title"><b>📦 المخزن</b><span>${all.length} صنف</span></div>
+          ${low > 0 ? `<button type="button" class="simple-stock-alert" onclick="showLowStockParts()">⚠️ ${low} أصناف عند الحد الأدنى أو أقل</button>` : ""}
+          ${cards ? `<div class="simple-stat-grid">${cards}</div>` : `<div class="simple-empty">لا توجد قطع مسجلة.</div>`}
+          <div class="simple-main-actions">
+            ${simpleButton("كل القطع","📦","showAllParts()","primary-tile")}
+          </div>
+        </section>`;
+      return;
+    }
+
+    const q = ($("partSearch")?.value || "").toLowerCase().trim();
+    const bucket = state.partBucket;
+    const cat = state.partCategory;
+    const filtered = all.filter(p => {
+      const ok = [p.name,p.code,p.location,p.category].filter(Boolean).join(" ").toLowerCase().includes(q);
+      if (bucket === "low" && (+p.qty || 0) > (+p.min || 0)) return false;
+      if (cat && (p.category || "أخرى") !== cat) return false;
+      return ok;
+    });
+
+    const listTitle = bucket === "low" ? "أصناف عند الحد الأدنى أو أقل" : cat ? esc2(cat) : "كل القطع";
+
+    el.innerHTML = `
+      <div class="simple-list-head">
+        <b>${listTitle}</b>
+        <button type="button" class="secondary small-btn" onclick="hideAllParts()">رجوع للملخص</button>
+      </div>
+      ${filtered.length ? filtered.map(p => `
+        <div class="simple-record">
+          <div class="simple-record-icon">${categoryIcon(p.category)}</div>
+          <div class="simple-record-main">
+            <a href="part.html?id=${p.id}"><b>${esc2(p.name)}</b></a>
+            <span>${esc2(p.category || "—")} • ${esc2(p.code || "بدون كود")}</span>
+            <small>📍 ${esc2(p.location || "—")} • شراء ${(+p.buy||0).toFixed(2)} ج • استخدام ${(+p.use||0).toFixed(2)} ج • 📈 ${((+p.use||0)>0?(((+p.use||0)-(+p.buy||0))/(+p.use||0)*100):0).toFixed(1)}%</small>
+          </div>
+          <span class="simple-qty ${(+p.qty||0) <= (+p.min||0) ? "low" : ""}">${+p.qty||0}</span>
+          <div class="simple-record-actions"><a class="secondary small-btn" href="part.html?id=${p.id}">فتح</a><button type="button" class="danger-btn small-btn" onclick="deletePartRecord('${p.id}')">🗑️ حذف</button></div>
+        </div>`).join("") : `<div class="item">لا توجد نتائج.</div>`}`;
+  };
+
+  /* ---------- أوامر الشغل ---------- */
+  window.showAllRequests = function () {
+    state.requests = true;
+    state.requestBucket = "";
+    $("requestSearch")?.classList.remove("hidden");
+    $("statusFilter")?.classList.remove("hidden");
+    $("workshopFilter")?.classList.remove("hidden");
+    renderRequests();
+  };
+
+  window.showRequestBucket = function (bucket) {
+    state.requests = true;
+    state.requestBucket = bucket;
+    $("requestSearch")?.classList.add("hidden");
+    $("statusFilter")?.classList.add("hidden");
+    $("workshopFilter")?.classList.add("hidden");
+    renderRequests();
+  };
+
+  window.hideAllRequests = function () {
+    state.requests = false;
+    state.requestBucket = "";
+    $("requestSearch")?.classList.add("hidden");
+    $("statusFilter")?.classList.add("hidden");
+    $("workshopFilter")?.classList.add("hidden");
+    renderRequests();
+  };
+
+  function bucketFilter(r, b) {
+    if (!b) return true;
+    if (b.indexOf("tag:") === 0) { const t = b.slice(4); return t ? r.tag === t : !r.tag; }
+    if (b === "today") return orderIsToday(r);
+    if (b === "workshop") return orderIsWorkshop(r);
+    if (b === "completed") return orderIsCompleted(r);
+    if (b === "parts") return orderIsParts(r);
+    if (b === "overdue") return orderIsOverdue(r);
+    if (b === "open") return !orderIsCompleted(r) && r.status !== "ملغي";
+    if (b === "unpaid") return !r.closed && Math.max(0, (+r.total || 0) - (+r.deposit || 0)) > 0;
+    return true;
+  }
+
+  function orderTagList() {
+    return (typeof settings === "function" ? (settings().orderTags || []) : []);
+  }
+
+  function tagSummaryHtml(all) {
+    const tags = orderTagList();
+    if (!tags.length) return "";
+    const chips = tags.map(t =>
+      simpleButton(t, "🏷️", `showRequestBucket('tag:${t.replace(/'/g, "\\'")}')`)
+    ).join("");
+    return `<div class="simple-summary-title"><b>🏷️ حسب التصنيف اليدوي</b></div>
+      <div class="simple-order-grid">${chips}${simpleButton("بدون تصنيف", "➖", "showRequestBucket('tag:')")}</div>`;
+  }
+
+  function orderLocationLabel(r) {
+    const x = locationForOrder(r);
+    return `${x.center}${x.village && x.village !== "بدون قرية" ? " • " + x.village : ""}`;
+  }
+
+  // يحسب ألوان مناسبة (خلفية/نص/تفاصيل) بناءً على لون مخصص يختاره المستخدم، عشان النص يفضل مقروء فوق أي لون.
+  function rpThemeVars(hex) {
+    let h = (hex || "").replace("#", "");
+    if (h.length === 3) h = h.split("").map(c => c + c).join("");
+    if (!/^[0-9a-fA-F]{6}$/.test(h)) h = "17181b";
+    const r = parseInt(h.substr(0,2),16), g = parseInt(h.substr(2,2),16), b = parseInt(h.substr(4,2),16);
+    const yiq = (r*299 + g*587 + b*114) / 1000;
+    const dark = yiq < 150;
+    return {
+      bg: "#"+h,
+      fg: dark ? "#f2f3f5" : "#18212b",
+      muted: dark ? "#9aa0a8" : "#687583",
+      border: dark ? "rgba(255,255,255,.12)" : "rgba(0,0,0,.1)",
+      link: dark ? "#4d9fff" : "#17324d"
+    };
+  }
+
+  function rpWrapAttrs() {
+    const s = (typeof settings === "function" ? settings() : {}) || {};
+    const theme = s.routeTheme || "dark";
+    if (theme === "custom") {
+      const v = rpThemeVars(s.routeThemeColor);
+      const style = `--rp-bg:${v.bg};--rp-fg:${v.fg};--rp-muted:${v.muted};--rp-border:${v.border};--rp-link:${v.link}`;
+      return ` class="rp-wrap rp-theme-custom" style="${style}"`;
+    }
+    return ` class="rp-wrap rp-theme-${theme}"`;
+  }
+
+  function renderRouteSummary(all) {
+    const future = all.filter(r => r.visit && !orderIsCompleted(r) && r.status !== "ملغي" && !orderIsOverdue(r))
+      .sort((a,b) => new Date(a.visit) - new Date(b.visit));
+    if (!future.length) return `<div${rpWrapAttrs()}><div class="rp-empty">📅 لا توجد مواعيد مجدولة قادمة.</div></div>`;
+
+    const groups = {};
+    future.forEach(r => {
+      const dk = dateKey(r.visit);
+      (groups[dk] ||= []).push(r);
+    });
+
+    const centerVillageBlock = (rs) => {
+      const byCenter = {};
+      rs.forEach(r => { const loc = locationForOrder(r); (byCenter[loc.center] ||= []).push(r); });
+      return Object.entries(byCenter).map(([center,cr]) => {
+        const byVillage = {};
+        cr.forEach(r => { const loc = locationForOrder(r); (byVillage[loc.village] ||= []).push(r); });
+        return `<div class="rp-center"><b>📍 ${esc2(center)}</b>
+          ${Object.entries(byVillage).map(([village,vr]) => `
+            <div class="rp-village">
+              <div class="rp-village-head"><span>${esc2(village)}</span><strong>${vr.length}</strong></div>
+              ${vr.map(r=>`<a href="request.html?id=${r.id}" class="rp-order-link">${esc2(r.no)} — ${esc2(customerName(r.customerId))}</a>`).join("")}
+            </div>`).join("")}
+        </div>`;
+      }).join("");
+    };
+
+    const dates = Object.keys(groups).sort().slice(0, 4);
+    return `<div${rpWrapAttrs()}>
+      <div class="rp-title"><b>📅 خط السير القادم</b><span>${future.length} موعد</span></div>
+      ${dates.map(dk => {
+        const dayOrders = groups[dk];
+        const cityOrders = [], villageOrders = [];
+        dayOrders.forEach(r => {
+          const loc = locationForOrder(r);
+          (villageGroupOf(loc.center, loc.village) === "city" ? cityOrders : villageOrders).push(r);
+        });
+        const d = new Date(dk + "T00:00:00");
+        return `<div class="rp-day">
+          <div class="rp-day-title"><b>${d.toLocaleDateString("ar-EG",{weekday:"long",day:"2-digit",month:"2-digit"})}</b><span>${dayOrders.length} أمر</span></div>
+          ${cityOrders.length ? `<div class="rp-group"><div class="rp-group-title">🏙️ داخل المركز <span>${cityOrders.length}</span></div>${centerVillageBlock(cityOrders)}</div>` : ""}
+          ${villageOrders.length ? `<div class="rp-group"><div class="rp-group-title">🌾 القرى <span>${villageOrders.length}</span></div>${centerVillageBlock(villageOrders)}</div>` : ""}
+        </div>`;
+      }).join("")}
+    </div>`;
+  }
+
+  // خط سير اليوم داخل صفحة الأوامر — نفس بطاقات/أزرار صفحة "خط السير"
+  // (route.html) بالظبط: تجميع حسب المركز، تسجيل الزيارة، حالة التواصل،
+  // ترتيب بالأسهم، وطي الأوامر المكتملة/المتصل بيها في سطر واحد قابل
+  // لإعادة المحاولة. الفرق الوحيد إنها هنا مقصورة على مواعيد اليوم فقط
+  // ومطبوعة كجزء من ملخص صفحة الأوامر بدل صفحة مستقلة.
+  function renderTodayRouteWidget(all) {
+    const today = dayKeyLocal(new Date());
+    const customers = customerRows();
+    const scheduledToday = all.filter(x => x.visit && dayKeyLocal(x.visit) === today);
+    const closedToday = scheduledToday.filter(x => x.closed);
+    const visitedNotClosed = scheduledToday.filter(x => !x.closed && !x.contactStatus && x.status !== "ملغي" && x.visitedAt && dayKeyLocal(x.visitedAt) === today);
+    const notVisited = scheduledToday.filter(x => !x.closed && !x.contactStatus && x.status !== "ملغي" && !(x.visitedAt && dayKeyLocal(x.visitedAt) === today));
+    const collectedToday = all.filter(x => x.paidAt && dayKeyLocal(x.paidAt) === today).reduce((a,x)=>a+Math.max(0,(+x.total||0)-(+x.deposit||0)),0);
+    const summaryHtml = `<div class="route-summary"><div class="stat"><b>${scheduledToday.length}</b><span>📅 المجدول اليوم</span></div><div class="stat"><b>${closedToday.length}</b><span>✅ أُغلق وتم التحصيل</span></div><div class="stat"><b>${visitedNotClosed.length}</b><span>🚶 تمت الزيارة والعمل جارٍ</span></div><div class="stat"><b>${notVisited.length}</b><span>⏳ لم تتم الزيارة بعد</span></div><div class="stat"><b>${collectedToday.toFixed(2)} ج</b><span>💰 المُحصَّل اليوم</span></div></div>`;
+
+    let list = scheduledToday.map(x => ({ ...x, _c: customers.find(z => z.id === x.customerId) || {}, _addr: resolveRequestAddress(x) }));
+    const orderIds = routeOrderForList(list), byId = new Map(list.map(x => [x.id, x]));
+    list = orderIds.map(idv => byId.get(idv)).filter(Boolean);
+
+    if (!list.length) {
+      return `<div class="today-route-widget"><div class="simple-summary-title"><b>📅 خط سير اليوم</b></div><div class="item">لا يوجد مواعيد اليوم.</div></div>`;
+    }
+
+    const groups = {};
+    list.forEach(x => { const k = x._addr.center || "بدون مركز"; (groups[k] = groups[k] || []).push(x); });
+
+    let itemsHtml = "";
+    Object.keys(groups).forEach(center => {
+      itemsHtml += `<h3 class="route-group-title">🗺️ ${esc2(center)} <span class="badge">${groups[center].length}</span></h3>`;
+      itemsHtml += groups[center].map(x => {
+        const visitedToday = !!(x.visitedAt && dayKeyLocal(x.visitedAt) === today), isDone = x.status === "مكتمل";
+        const contactBadge = x.contactStatus === 'unavailable' ? '<span class="badge route-badge-unavailable">📵 غير متاح</span>' : x.contactStatus === 'no-answer' ? '<span class="badge route-badge-noanswer">📞 لم يرد</span>' : '';
+        const stateBadge = x.closed ? '<span class="badge route-badge-done">✅ مُغلق</span>' : x.status === "ملغي" ? '<span class="badge">🚫 ملغي</span>' : contactBadge || (visitedToday ? '<span class="badge route-badge-visited">🚶 تمت الزيارة</span>' : '<span class="badge route-badge-pending">⏳ قيد الانتظار</span>');
+        const contactCollapsed = !!x.contactStatus && !x.closed && !isDone;
+        if (isDone || contactCollapsed) {
+          const statusText = isDone ? '✅ مكتمل' : (x.contactStatus === 'unavailable' ? '📵 غير متاح' : '📞 لم يرد');
+          const statusClass = isDone ? 'route-badge-done' : (x.contactStatus === 'unavailable' ? 'route-badge-unavailable' : 'route-badge-noanswer');
+          const retryBtn = contactCollapsed ? `<button type="button" class="route-retry-btn mini-action" onclick="event.stopPropagation();retryRouteContact('${x.id}')" title="إرجاع الطلب إلى الحالة النشطة لإعادة المحاولة">🔄 إعادة المحاولة</button>` : '';
+          const returnBtn = (isDone && canReturnRequest(x)) ? `<button type="button" class="return-btn mini-action" onclick="event.stopPropagation();markRequestReturned('${x.id}')" title="إرجاع الأمر كمرتجع للتعديل">🔄 مرتجع${x.closed ? ` (${Math.max(0,returnWindowDaysLeft(x))}ي)` : ''}</button>` : '';
+          return `<div class="route-completed-row" data-route-id="${x.id}" onclick="location.href='request.html?id=${x.id}'" title="اضغط لفتح أمر الشغل"><b>👤 ${esc2(x._c.name||"بدون اسم")}</b><span class="badge ${statusClass}">${statusText}</span><span class="route-row-arrows">${retryBtn}${returnBtn}<button type="button" class="route-up-btn mini-action" onclick="event.stopPropagation();moveRouteItem('${x.id}',-1)" title="تحريك لأعلى">⬆️</button><button type="button" class="route-down-btn mini-action" onclick="event.stopPropagation();moveRouteItem('${x.id}',1)" title="تحريك لأسفل">⬇️</button></span></div>`;
+        }
+        const toggleBtn = (!x.closed && x.status !== "ملغي") ? `<button type="button" class="secondary mini-action" onclick="event.preventDefault();event.stopPropagation();toggleVisited('${x.id}')">${visitedToday ? "↩️ إلغاء تسجيل الزيارة" : "✅ تسجيل الزيارة"}</button>` : "";
+        const contactBtns = (!x.closed && x.status !== "ملغي") ? `<button type="button" class="route-contact-unavailable mini-action" onclick="event.preventDefault();event.stopPropagation();setRouteContactStatus('${x.id}','unavailable')">📵 غير متاح</button><button type="button" class="route-contact-noanswer mini-action" onclick="event.preventDefault();event.stopPropagation();setRouteContactStatus('${x.id}','no-answer')">📞 لم يرد</button>` : "";
+        return `<div class="item route-order-card" data-route-id="${x.id}"><div class="route-order-head"><a href="request.html?id=${x.id}"><b>🛠️ ${esc2(x.no)}</b></a><span class="route-order-name">👤 ${esc2(x._c.name||"")}</span><span class="route-head-status">${stateBadge}</span></div><div class="route-order-data"><div class="route-data-cell">📍 <span>${esc2(addressText(x._addr))}</span></div><div class="route-data-cell">📞 <span>${contactLinksHtml(x._c.phone)}</span></div><div class="route-data-cell">🔧 <span>${esc2(deviceName(x.deviceId))}</span></div><div class="route-data-cell">📝 <span>${esc2(x.fault||"")}</span></div><div class="route-data-cell">⏰ <span>${x.visit?new Date(x.visit).toLocaleString("ar-EG",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):""}</span></div>${x.closed?`<div class="route-data-cell">💰 <span>${Math.max(0,(+x.total||0)-(+x.deposit||0)).toFixed(2)} ج</span></div>`:""}</div><div class="route-order-actions">${toggleBtn?`<div class="route-visit-row">${toggleBtn}</div>`:""}${contactBtns?`<div class="route-contact-row">${contactBtns}</div>`:""}<div class="route-arrows-row"><button type="button" class="route-up-btn mini-action" onclick="event.preventDefault();moveRouteItem('${x.id}',-1)" title="تحريك لأعلى">⬆️</button><button type="button" class="route-down-btn mini-action" onclick="event.preventDefault();moveRouteItem('${x.id}',1)" title="تحريك لأسفل">⬇️</button></div></div></div>`;
+      }).join("");
+    });
+
+    return `<div class="today-route-widget"><div class="simple-summary-title"><b>📅 خط سير اليوم</b><span>${list.length} أمر</span></div>${summaryHtml}${itemsHtml}</div>`;
+  }
+
+  function renderRequestSummary() {
+    const el = $("requestList");
+    if (!el) return;
+    const all = requestRows();
+    const counts = {
+      today: all.filter(orderIsToday).length,
+      workshop: all.filter(orderIsWorkshop).length,
+      completed: all.filter(orderIsCompleted).length,
+      parts: all.filter(orderIsParts).length,
+      overdue: all.filter(orderIsOverdue).length
+    };
+
+    el.innerHTML = `
+      <section class="simple-home request-simple-home">
+        <div class="simple-summary-title"><b>🛠️ أوامر الشغل</b><span>${all.length} إجمالي</span></div>
+        <div class="simple-order-grid">
+          ${simpleButton("اليوم","📅","showRequestBucket('today')")}
+          ${simpleButton("الورشة","🏭","showRequestBucket('workshop')")}
+          ${simpleButton("المكتملة","✅","showRequestBucket('completed')")}
+          ${simpleButton("انتظار قطع","📦","showRequestBucket('parts')")}
+          ${simpleButton("متأخر","⚠️","showRequestBucket('overdue')")}
+          ${simpleButton("كل الأوامر","🛠️","showAllRequests()","primary-tile")}
+        </div>
+        ${tagSummaryHtml(all)}
+      </section>
+      ${renderTodayRouteWidget(all)}`;
+  }
+
+  window.renderRequestFolders = function () {
+    /* لم تعد هناك بطاقات مكررة؛ الملخص الموحد موجود داخل requestList. */
+    const el = $("requestFolders");
+    if (el) el.innerHTML = "";
+  };
+
+  defineOverride("renderRequests", "workshop-mini-simple-ui.js", function () {
+    const el = $("requestList");
+    if (!el) return;
+
+    const all = requestRows();
+
+    if (!state.requests) {
+      renderRequestSummary();
+      if ($("requestSchedule")) $("requestSchedule").innerHTML = "";
+      return;
+    }
+
+    const q = ($("requestSearch")?.value || "").toLowerCase().trim();
+    const sf = $("statusFilter")?.value || "";
+    const wf = $("workshopFilter")?.value || "";
+    const bucket = state.requestBucket;
+
+    let filtered = all.filter(r => {
+      const text = [r.no, customerName(r.customerId), r.fault, orderLocationLabel(r)].filter(Boolean).join(" ").toLowerCase();
+      let ok = !q || text.includes(q);
+      if (bucket) ok = ok && bucketFilter(r,bucket);
+      if (sf) ok = ok && r.status === sf;
+      if (wf === "workshop") ok = ok && r.executionPlace === "الورشة";
+      if (wf === "pull") ok = ok && r.workshopStatus && r.workshopStatus !== "غير مطلوب" && r.workshopStatus !== "تم التسليم";
+      if (wf === "inside") ok = ok && r.workshopStatus === "تم السحب";
+      return ok;
+    });
+
+    filtered.sort((a,b) => new Date(b.visit || b.createdAt || 0) - new Date(a.visit || a.createdAt || 0));
+
+    const title = bucket === "today" ? "أوامر اليوم" :
+      bucket === "workshop" ? "أوامر الورشة" :
+      bucket === "completed" ? "الأوامر المكتملة" :
+      bucket === "parts" ? "انتظار قطع الغيار" :
+      bucket === "overdue" ? "الأوامر المتأخرة" :
+      bucket === "open" ? "الأوامر المفتوحة" :
+      bucket === "unpaid" ? "متبقي غير محصّل" :
+      (bucket && bucket.indexOf("tag:") === 0) ? `🏷️ ${bucket.slice(4) || "بدون تصنيف"}` : "كل الأوامر";
+
+    el.innerHTML = `
+      <div class="simple-list-head">
+        <div><b>${title}</b><small>${filtered.length} أمر</small></div>
+        <button type="button" class="secondary small-btn" onclick="hideAllRequests()">رجوع للملخص</button>
+      </div>
+      ${filtered.length ? filtered.map(r => {
+        const loc = locationForOrder(r);
+        const status = r.closed ? "مغلق" : (r.status || "—");
+        return `<div class="simple-record">
+          <div class="simple-record-icon">${r.closed ? "🔒" : "🛠️"}</div>
+          <div class="simple-record-main">
+            <a href="request.html?id=${r.id}"><b>${esc2(r.no || "أمر شغل")}</b></a>
+            <span>${esc2(customerName(r.customerId))} • ${esc2(deviceName(r.deviceId))}</span>
+            <small>📍 ${esc2(loc.center)}${loc.village ? " • " + esc2(loc.village) : ""} • ${r.visit ? new Date(r.visit).toLocaleString("ar-EG",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "بدون موعد"}${r.tag ? " • 🏷️ " + esc2(r.tag) : ""}</small>
+          </div>
+          <div class="simple-record-side">
+            <span class="simple-status ${r.closed ? "closed" : ""}">${esc2(status)}</span>
+            ${canReturnRequest(r) ? `<button type="button" class="secondary mini-action return-btn" onclick="markRequestReturned('${r.id}')">🔄 مرتجع${r.closed ? ` (${Math.max(0,returnWindowDaysLeft(r))}ي)` : ""}</button>` : ""}
+            <b>${(+r.total||0).toFixed(2)} ج</b>
+            ${(+r.deposit||0) > 0 ? `<small class="deposit-chip">💵 عربون ${(+r.deposit).toFixed(2)} ج</small>` : ""}
+          </div>
+        </div>`;
+      }).join("") : `<div class="item">لا توجد أوامر في هذا القسم.</div>`}`;
+  });
+
+  /* markPaidAndClose / closeOrder: بقوا نسخة واحدة موحّدة في app-shared.js
+     (بيتحمّل قبل الملف ده في كل صفحة)، فمفيش داعي نستبدلهم هنا تاني. */
+
+  /* ---------- الدخول المباشر من إحصائيات الصفحة الرئيسية (?bucket=...) ---------- */
+  function applyDeepLinkBucket() {
+    const bucket = new URLSearchParams(location.search).get("bucket");
+    if (!bucket) return;
+    if ($("requestList")) {
+      if (bucket === "all") window.showAllRequests();
+      else window.showRequestBucket(bucket);
+    } else if ($("customerList")) {
+      if (bucket === "all") window.showAllCustomers();
+      else window.showCustomerBucket(bucket);
+    } else if ($("deviceList")) {
+      if (bucket === "all") window.showAllDevices();
+      else window.showDeviceBucket(bucket);
+    } else if ($("partList")) {
+      if (bucket === "low") window.showLowStockParts();
+      else if (bucket === "all") window.showAllParts();
+      else window.showPartsCategory(decodeURIComponent(bucket));
+    }
+  }
+
+  function initSimpleView() {
+    /* نخفي القوائم والبحث والفلاتر افتراضيًا. */
+    ["customerSearch","deviceSearch","partSearch","requestSearch","statusFilter","workshopFilter"].forEach(id => {
+      $(id)?.classList.add("hidden");
+    });
+
+    if ($("customerSearch")) $("customerSearch").oninput = renderCustomers;
+    if ($("deviceSearch")) $("deviceSearch").oninput = renderDevices;
+    if ($("partSearch")) $("partSearch").oninput = renderParts;
+    if ($("requestSearch")) $("requestSearch").oninput = renderRequests;
+    if ($("statusFilter")) $("statusFilter").onchange = renderRequests;
+    if ($("workshopFilter")) $("workshopFilter").onchange = renderRequests;
+
+    renderCustomers();
+    renderDevices();
+    renderParts();
+    renderRequests();
+    applyDeepLinkBucket();
+  }
+
+  document.addEventListener("DOMContentLoaded", () => setTimeout(initSimpleView, 0));
+})();
