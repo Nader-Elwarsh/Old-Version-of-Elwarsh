@@ -68,7 +68,7 @@ function settingsPage(){
   let host=document.getElementById("settingsDynamic");
   if(host)host.innerHTML=`<section class="panel setting-list-panel"><div class="page-head"><h2>🛠️ دورة حالات أمر الشغل</h2></div><div class="hint">الحالات (جديد / جاري التنفيذ / مكتمل / ملغي) وحالات الورشة (غير مطلوب / تم السحب / تم التسليم) بقت دورة معتمدة وثابتة، ومش قابلة للتعديل من هنا. الأولوية اتشالت خالص من أوامر الشغل. راجع ملف WORK_ORDER_LIFECYCLE_APPROVED.md لتفاصيل الدورة والانتقالات المسموحة.</div></section>`+returnWindowSettingHtml()+[["executionPlaces","أماكن التنفيذ","📍"],["paymentStatuses","حالات الدفع","💳"],["units","وحدات القياس","📏"],["addressTypes","أنواع العناوين","🏠"],["orderTags","التصنيف اليدوي لأوامر الشغل","🏷️"],["expenseCategories","تصنيفات المصاريف","🧯"]].map(x=>listEditorHtml(...x)).join("");
   let walletHost=document.getElementById("walletSettingsDynamic");
-  if(walletHost)walletHost.innerHTML=[["wallets","المحافظ / الحسابات (محفظتي، فودافون كاش، أورنج كاش، إنستاباي... أضف أي حساب تحب)","💳"],["walletCategories","تصنيفات حركة المحافظ (شخصي / تشغيل / تحصيل عميل...)","🏷️"]].map(x=>inlineListEditorHtml(...x)).join("");
+  if(walletHost)walletHost.innerHTML=[["wallets","الحسابات (محفظتي الشخصية، فودافون كاش، أورنج كاش، إنستاباي... أضف أي حساب تحب)","💳"],["walletCategories","تصنيفات حركة الحسابات (شخصي / تشغيل / تحصيل عميل...)","🏷️"]].map(x=>inlineListEditorHtml(...x)).join("");
   let rtHost=document.getElementById("routeThemeSettings");
   if(rtHost)rtHost.innerHTML=routeThemeSettingsHtml();
   bindSortableSettings();

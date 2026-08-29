@@ -368,7 +368,6 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .wallet-icon-card i{font-style:normal;font-size:24px;width:46px;height:46px;display:flex;align-items:center;justify-content:center;background:#eef3f7;border-radius:14px}
 .wallet-icon-card b{font-size:11.5px;color:#18212b;line-height:1.3;display:block}
 .wallet-icon-card span{font-size:13px;font-weight:bold;color:#17324d;display:block}
-.transfer-panel{background:#f7f9fb;border-radius:10px;padding:10px;margin-bottom:14px}
-.transfer-panel .actions{display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px}
+#walletTransferBody{padding-top:12px}
 @media(max-width:650px){.wallet-icon-grid{grid-template-columns:repeat(auto-fill,minmax(84px,1fr))}}
 @media(max-width:650px){.inline-edit-row{grid-template-columns:auto 1fr}.inline-edit-row .compact-actions{grid-column:1/-1;justify-content:flex-start;margin-top:4px}.wallet-account-cards{grid-template-columns:1fr}}

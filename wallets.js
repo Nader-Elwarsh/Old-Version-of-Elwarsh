@@ -158,27 +158,38 @@ function transferBetweenWalletAndTreasury(direction,walletName,amount,date,time,
   }
   renderWallets();renderTreasury();renderWalletDetail();
 }
+function toggleWalletTransferPanel(){
+  let body=document.getElementById("walletTransferBody"),btn=document.getElementById("walletTransferToggleBtn");
+  if(!body||!btn)return;
+  let opening=body.classList.contains("hidden");
+  body.classList.toggle("hidden");
+  btn.textContent=opening?"🔁 تحويل بين المحافظ والخزنة (دوس للإغلاق)":"🔁 تحويل بين المحافظ والخزنة (دوس للفتح)";
+  btn.classList.toggle("quick-order-open",opening);
+  if(opening)setTimeout(()=>body.scrollIntoView({behavior:"smooth",block:"nearest"}),50);
+}
 function walletTransferWidgetHtml(){
   let wallets=settings().wallets||[],today=localDateKey(new Date());
-  return `<div class="transfer-panel">
-    <b>🔁 تحويل بين المحافظ والخزنة</b>
-    <div class="hint">كل حساب بيفضل مستقل في حساباته؛ التحويل بيسجل حركة صادر من المصدر ووارد في الوجهة بس، من غير ما يدمج الحسابين.</div>
-    <div class="form-grid" style="margin-top:8px">
-      <label>الاتجاه<select id="wtrDirection">
-        <option value="toTreasury">من محفظة ← إلى الخزنة</option>
-        <option value="toWallet">من الخزنة ← إلى محفظة</option>
-      </select></label>
-      <label>المحفظة<select id="wtrWallet">${wallets.length?wallets.map(w=>`<option>${esc(w)}</option>`).join(""):`<option value="">لا توجد محافظ</option>`}</select></label>
-      <label>المبلغ<input id="wtrAmount" type="number" step="0.01" min="0" placeholder="0.00"></label>
-      <label>التاريخ<input id="wtrDate" type="date" value="${today}"></label>
-      <label>الوقت<input id="wtrTime" type="time" value="${new Date().toTimeString().slice(0,5)}"></label>
-      <label class="wide">السبب (اختياري)<input id="wtrReason" placeholder="مثال: سحب من المحفظة للخزنة"></label>
-      <label class="wide">تفاصيل إضافية<input id="wtrNote" placeholder="اختياري"></label>
+  return `<section class="panel" id="walletTransferPanel" style="margin-bottom:14px">
+    <button type="button" id="walletTransferToggleBtn" class="quick-order-toggle" onclick="toggleWalletTransferPanel()">🔁 تحويل بين المحافظ والخزنة (دوس للفتح)</button>
+    <div id="walletTransferBody" class="hidden">
+      <div class="hint" style="margin-top:10px">كل حساب بيفضل مستقل في حساباته؛ التحويل بيسجل حركة صادر من المصدر ووارد في الوجهة بس، من غير ما يدمج الحسابين.</div>
+      <div class="form-grid" style="margin-top:8px">
+        <label>الاتجاه<select id="wtrDirection">
+          <option value="toTreasury">من محفظة ← إلى الخزنة</option>
+          <option value="toWallet">من الخزنة ← إلى محفظة</option>
+        </select></label>
+        <label>المحفظة<select id="wtrWallet">${wallets.length?wallets.map(w=>`<option>${esc(w)}</option>`).join(""):`<option value="">لا توجد محافظ</option>`}</select></label>
+        <label>المبلغ<input id="wtrAmount" type="number" step="0.01" min="0" placeholder="0.00"></label>
+        <label>التاريخ<input id="wtrDate" type="date" value="${today}"></label>
+        <label>الوقت<input id="wtrTime" type="time" value="${new Date().toTimeString().slice(0,5)}"></label>
+        <label class="wide">السبب (اختياري)<input id="wtrReason" placeholder="مثال: سحب من المحفظة للخزنة"></label>
+        <label class="wide">تفاصيل إضافية<input id="wtrNote" placeholder="اختياري"></label>
+      </div>
+      <div class="actions">
+        <button type="button" class="primary" onclick="executeWalletTreasuryTransfer()">🔁 نفّذ التحويل</button>
+      </div>
     </div>
-    <div class="actions">
-      <button type="button" class="primary" onclick="executeWalletTreasuryTransfer()">🔁 نفّذ التحويل</button>
-    </div>
-  </div>`;
+  </section>`;
 }
 function executeWalletTreasuryTransfer(){
   let dir=document.getElementById("wtrDirection")?.value||"toTreasury",
@@ -190,7 +201,6 @@ function executeWalletTreasuryTransfer(){
       note=document.getElementById("wtrNote")?.value||"";
   transferBetweenWalletAndTreasury(dir,wallet,amount,date,time,reason,note);
 }
-
 /* ---------------------------------------------------------------------
    العرض: صفحة تفاصيل محفظة واحدة (أو تصنيف حركة واحد كحساب تجميعي)
    =========================================================
@@ -255,7 +265,7 @@ function renderWalletDetail(){
         <button type="button" class="secondary danger-btn" onclick="walletManualFromDetail('out','${esc(name)}')">➖ صرف</button>
       </div>
     </div>
-    ${walletTransferWidgetHtml()}`:`<div class="hint">ده حساب تجميعي حسب تصنيف الحركة "${esc(name)}" عبر كل المحافظ مع بعض، مش محفظة فعلية بذاتها. لتسجيل حركة جديدة بنفس التصنيف، من صفحة أي محفظة أو من صفحة المحافظ الرئيسية.</div>`}
+    ${walletTransferWidgetHtml()}`:`<div class="hint">ده حساب تجميعي حسب تصنيف الحركة "${esc(name)}" عبر كل المحافظ مع بعض، مش محفظة فعلية بذاتها. لتسجيل حركة جديدة بنفس التصنيف، من صفحة أي حساب أو من صفحة الحسابات الرئيسية.</div>`}
     <div class="filters">
       <select id="wdFilterCategory" onchange="renderWalletDetail()"><option value="">كل التصنيفات</option>${categories.map(c=>`<option ${c===filterCategory?"selected":""}>${esc(c)}</option>`).join("")}</select>
     </div>
@@ -278,23 +288,18 @@ function renderWalletDetail(){
 function renderWallets(){
   let el=document.getElementById("walletsPage");if(!el)return;
   let wallets=settings().wallets||[],categories=settings().walletCategories||[];
-  let filterWallet=document.getElementById("wFilterWallet")?.value||"",
-      filterCategory=document.getElementById("wFilterCategory")?.value||"";
   let overview=walletsOverview(),catTotals=walletCategoryTotals(),pvw=personalVsWorkshopTotals();
   let today=localDateKey(new Date());
-  let list=walletTxEntries()
-    .filter(x=>(!filterWallet||x.wallet===filterWallet)&&(!filterCategory||x.category===filterCategory))
-    .sort((a,b)=>new Date((b.date||"")+"T"+(b.time||"00:00"))-new Date((a.date||"")+"T"+(a.time||"00:00"))||new Date(b.createdAt)-new Date(a.createdAt));
   el.innerHTML=`
     <div class="treasury-balance">
-      <span>إجمالي أرصدة كل المحافظ</span><b>${walletsTotalBalance().toFixed(2)} ج</b>
+      <span>إجمالي أرصدة كل الحسابات</span><b>${walletsTotalBalance().toFixed(2)} ج</b>
     </div>
     <div class="wallet-icon-grid">
       <a class="wallet-icon-card" href="wallet.html?type=category&name=${encodeURIComponent("مصروف شخصي")}"><i>🙋</i><b>حساب مصاريفي الشخصية</b><span>${pvw.personal.toFixed(2)} ج</span></a>
       <a class="wallet-icon-card" href="wallet.html?type=category&name=${encodeURIComponent("مصروف تشغيل")}"><i>🔧</i><b>حساب مصاريف الورشة (تشغيل)</b><span>${pvw.workshop.toFixed(2)} ج</span></a>
       ${overview.map(w=>`<a class="wallet-icon-card" href="wallet.html?type=wallet&name=${encodeURIComponent(w.name)}"><i>💳</i><b>${esc(w.name)}</b><span>${w.balance.toFixed(2)} ج</span></a>`).join("")}
     </div>
-    ${overview.length?"":`<div class="hint">لا توجد محافظ بعد. أضفها من ⚙️ الإعدادات ← المحافظ والحسابات.</div>`}
+    ${overview.length?"":`<div class="hint">لا توجد حسابات بعد. أضفها من ⚙️ الإعدادات ← الحسابات.</div>`}
     ${walletTransferWidgetHtml()}
     <details class="expense-panel">
       <summary>📊 ملخص كل تصنيف حركة على حدة (شخصي / تشغيل / تحصيل عميل...)</summary>
@@ -317,19 +322,6 @@ function renderWallets(){
         <button type="button" class="secondary danger-btn" onclick="walletManualFromPage('out')">➖ صرف</button>
       </div>
     </div>
-    <div class="filters">
-      <select id="wFilterWallet" onchange="renderWallets()"><option value="">كل المحافظ</option>${wallets.map(w=>`<option ${w===filterWallet?"selected":""}>${esc(w)}</option>`).join("")}</select>
-      <select id="wFilterCategory" onchange="renderWallets()"><option value="">كل التصنيفات</option>${categories.map(c=>`<option ${c===filterCategory?"selected":""}>${esc(c)}</option>`).join("")}</select>
-    </div>
-    <h3 class="treasury-list-title">📋 كشف حركات المحافظ</h3>
-    ${list.length?list.map(x=>`<div class="treasury-row ${x.type}">
-      <div class="treasury-row-main">
-        <b>${esc(x.reason||"—")}</b>
-        <small>${esc(new Date((x.date||today)+"T"+(x.time||"00:00")).toLocaleString("ar-EG"))} • 💳 ${esc(x.wallet||"—")} • 🏷️ ${esc(x.category||"أخرى")}${x.source==="order-link"?" • 🔗 أمر شغل":""}</small>
-        ${x.note?`<small>📝 ${esc(x.note)}</small>`:""}
-      </div>
-      <div class="treasury-row-amount ${x.type}">${x.type==="in"?"+":"−"}${(+x.amount||0).toFixed(2)} ج</div>
-      <div class="treasury-row-actions"><button type="button" class="mini-action" onclick="editWalletTx('${x.id}')">✏️</button><button type="button" class="mini-action" onclick="deleteWalletTx('${x.id}')">🗑️</button></div>
-    </div>`).join(""):`<div class="hint">لا توجد حركات في المحافظ بعد.</div>`}
+    <div class="hint">📋 كشف الحركات التفصيلي لكل حساب بقى جوه صفحته الخاصة — دوس على أي أيقونة فوق لعرضه وإضافة حركات ليه.</div>
   `;
 }
