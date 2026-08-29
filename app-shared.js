@@ -67,6 +67,85 @@ function statusHistoryHtml(r){let h=Array.isArray(r.statusHistory)?r.statusHisto
    قبل app-requests.js وقبل workshop-mini-simple-ui.js، وأي صفحتين
    بيشتغلوا بنفس الدالة بالظبط.
    ========================================================= */
+
+/* =========================================================
+   ⏱️ قياس دورة أمر الشغل
+   - createdAt: وقت تسجيل البلاغ
+   - startedAt: أول انتقال إلى "جاري التنفيذ"
+   - completedAt: آخر وصول إلى "مكتمل"
+   - workshopStartedAt: بداية التنفيذ داخل الورشة عند توفرها
+   التوقيتات لا تضيف حالات جديدة، وتظل متوافقة مع دورة الحالات المعتمدة.
+   ========================================================= */
+function requestTimingDate(r,field,fallbackToHistory){
+  if(!r)return null;
+  if(r[field]){let d=new Date(r[field]);if(!Number.isNaN(d.getTime()))return d;}
+  if(fallbackToHistory&&Array.isArray(r.statusHistory)){
+    let wanted=field==="startedAt"?"جاري التنفيذ":field==="completedAt"?"مكتمل":"";
+    if(wanted){
+      let rows=r.statusHistory.filter(x=>x.to===wanted&&x.at).sort((a,b)=>new Date(a.at)-new Date(b.at));
+      if(rows.length){let d=new Date(field==="completedAt"?rows[rows.length-1].at:rows[0].at);if(!Number.isNaN(d.getTime()))return d;}
+    }
+  }
+  return null;
+}
+function requestCreatedDate(r){
+  if(!r)return null;
+  let d=r.createdAt?new Date(r.createdAt):null;
+  if(d&&!Number.isNaN(d.getTime()))return d;
+  if(Array.isArray(r.statusHistory)&&r.statusHistory.length){
+    let rows=r.statusHistory.filter(x=>x.at).sort((a,b)=>new Date(a.at)-new Date(b.at));
+    if(rows.length){d=new Date(rows[0].at);if(!Number.isNaN(d.getTime()))return d;}
+  }
+  return null;
+}
+function requestStartedDate(r){return requestTimingDate(r,"startedAt",true)}
+function requestCompletedDate(r){return requestTimingDate(r,"completedAt",true)}
+function requestWorkshopStartedDate(r){
+  if(!r)return null;
+  if(r.workshopStartedAt){let d=new Date(r.workshopStartedAt);if(!Number.isNaN(d.getTime()))return d;}
+  if(r.executionPlace==="الورشة")return requestStartedDate(r);
+  return null;
+}
+function durationMs(start,end){
+  if(!start||!end)return null;
+  let n=new Date(end).getTime()-new Date(start).getTime();
+  return Number.isFinite(n)&&n>=0?n:null;
+}
+function formatDuration(ms){
+  if(ms===null||ms===undefined||!Number.isFinite(ms)||ms<0)return "—";
+  let totalMin=Math.round(ms/60000),days=Math.floor(totalMin/1440),hours=Math.floor((totalMin%1440)/60),mins=totalMin%60;
+  if(days)return `${days} يوم${days===1?"":""}${hours?` و ${hours} س`:""}`;
+  if(hours)return `${hours} س${mins?` و ${mins} د`:""}`;
+  return `${Math.max(0,mins)} د`;
+}
+function requestTotalCompletionMs(r){
+  let s=requestCreatedDate(r),e=requestCompletedDate(r);
+  return durationMs(s,e);
+}
+function requestExecutionMs(r){
+  let s=requestStartedDate(r),e=requestCompletedDate(r);
+  return durationMs(s,e);
+}
+function requestWorkshopExecutionMs(r){
+  let s=requestWorkshopStartedDate(r),e=requestCompletedDate(r);
+  return durationMs(s,e);
+}
+function requestWorkshopEnteredDate(r){
+  if(!r)return null;
+  const value=r.workshopEnteredAt||r.pulledAt||r.workshopAt;
+  if(value){let d=new Date(value);if(!Number.isNaN(d.getTime()))return d;}
+  return r.executionPlace==="الورشة"?requestWorkshopStartedDate(r):null;
+}
+function requestWorkshopStayMs(r){
+  let s=requestWorkshopEnteredDate(r),e=requestCompletedDate(r);
+  return durationMs(s,e);
+}
+function requestAgeMs(r){
+  let s=requestCreatedDate(r);if(!s)return null;
+  let e=requestCompletedDate(r);
+  return durationMs(s,e||new Date());
+}
+
 function markPaidAndClose(i){
   let a=arr(K.r),r=a.find(x=>x.id===i);
   if(!r||r.closed||r.paid)return;

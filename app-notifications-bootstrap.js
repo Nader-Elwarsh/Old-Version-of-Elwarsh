@@ -22,15 +22,15 @@ async function checkNotificationsNow(){
   if(last===today)return;
   let snap=await notifGet("snapshot");if(!snap)return;
   let reg=await navigator.serviceWorker.ready;let shown=false;
-  if(snap.today&&snap.today.length){reg.showNotification("📅 مواعيد اليوم",{body:`عندك ${snap.today.length} زيارة/زيارات اليوم.`,icon:"./icon-192-v11-4-1.png",tag:"wf-today",data:{url:"./requests.html?bucket=today"}});shown=true}
-  if(snap.overdue&&snap.overdue.length){reg.showNotification("⚠️ أوامر متأخرة",{body:`فيه ${snap.overdue.length} أمر متأخر محتاج متابعة.`,icon:"./icon-192-v11-4-1.png",tag:"wf-overdue",data:{url:"./requests.html?bucket=overdue"}});shown=true}
-  if(snap.lowStock&&snap.lowStock.length){reg.showNotification("📉 قطع منخفضة",{body:`فيه ${snap.lowStock.length} صنف وصل للحد الأدنى في المخزن.`,icon:"./icon-192-v11-4-1.png",tag:"wf-lowstock",data:{url:"./inventory.html?bucket=low"}});shown=true}
+  if(snap.today&&snap.today.length){reg.showNotification("📅 مواعيد اليوم",{body:`لديك ${snap.today.length} زيارة/زيارات اليوم.`,icon:"./icon-192-v11-4-1.png",tag:"wf-today",data:{url:"./requests.html?bucket=today"}});shown=true}
+  if(snap.overdue&&snap.overdue.length){reg.showNotification("⚠️ أوامر متأخرة",{body:`يوجد ${snap.overdue.length} أمر متأخر يحتاج متابعة.`,icon:"./icon-192-v11-4-1.png",tag:"wf-overdue",data:{url:"./requests.html?bucket=overdue"}});shown=true}
+  if(snap.lowStock&&snap.lowStock.length){reg.showNotification("📉 قطع منخفضة",{body:`يوجد ${snap.lowStock.length} صنف وصل إلى الحد الأدنى في المخزن.`,icon:"./icon-192-v11-4-1.png",tag:"wf-lowstock",data:{url:"./inventory.html?bucket=low"}});shown=true}
   if(shown)await notifSet("lastNotifiedDate",today);
 }
 async function enableNotifications(){
-  if(!("Notification" in window)||!("serviceWorker" in navigator)){alert("المتصفح ده مش بيدعم الإشعارات، للأسف.");return renderNotifSettings()}
+  if(!("Notification" in window)||!("serviceWorker" in navigator)){alert("هذا المتصفح لا يدعم الإشعارات، للأسف.");return renderNotifSettings()}
   let perm=await Notification.requestPermission();
-  if(perm!=="granted"){alert("محتاجين إذن الإشعارات من المتصفح عشان تشتغل.");return renderNotifSettings()}
+  if(perm!=="granted"){alert("يلزم السماح بإذن الإشعارات من المتصفح حتى تعمل.");return renderNotifSettings()}
   localStorage.setItem("wf_notif_enabled","1");
   try{
     let reg=await navigator.serviceWorker.ready;

@@ -152,6 +152,13 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .simple-stock-alert:active{opacity:.8}
 .simple-order-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .simple-order-grid .simple-tile{min-height:86px}
+.simple-tile.count-tile{gap:2px}
+.simple-tile.count-tile .tile-icon{font-size:20px;line-height:1}
+.simple-tile.count-tile .tile-count{font-size:20px;font-weight:bold;line-height:1.1}
+.simple-tile.count-tile .tile-label{font-size:11px;color:#687583}
+.simple-tile.count-tile.primary-tile .tile-label{color:#c9d6e3}
+.simple-tile.count-tile .tile-note{font-size:10px;color:#8a94a0}
+.simple-tile.count-tile.primary-tile .tile-note{color:#a9b9c9}
 /* خط السير القادم — بطاقة مستقلة (rp- prefix خاص بيها لوحدها عشان متتعارضش مع route-summary/route-group-title بتوع صفحة route.html) */
 /* الألوان معمولة كمتغيرات CSS عشان تتغير من الإعدادات (داكن/فاتح/تلقائي حسب النظام/لون مخصص) من غير ما نلمس أي كلاس تاني */
 .rp-wrap{--rp-bg:#17181b;--rp-fg:#f2f3f5;--rp-muted:#9aa0a8;--rp-border:rgba(255,255,255,.12);--rp-link:#4d9fff;
@@ -333,3 +340,15 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px}
   .route-order-actions .mini-action{min-width:0;padding:7px 6px!important;font-size:10px!important}
 }
 .status-history{grid-column:1/-1;background:#f7f9fb;border-radius:10px;padding:9px;margin:9px 0}.status-history h3{margin:0 0 6px;font-size:14px}.status-history-row{background:#fff;border-radius:7px;padding:6px 8px;margin-bottom:5px;font-size:12px}.status-history-line{display:flex;justify-content:space-between;gap:8px}.status-history-row small{color:#687583}.status-history-note{margin-top:4px;padding-top:4px;border-top:1px dashed #e2e6eb;color:#42505c;font-size:11px;overflow-wrap:anywhere}
+
+/* v2.1 — تشغيل ومتابعة أوامر الشغل */
+.request-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.request-kpi{background:var(--card,#fff);border:1px solid #e2e6eb;border-radius:12px;padding:10px;text-align:center}
+.request-kpi b{display:block;font-size:18px;margin-bottom:3px}
+.request-kpi small{color:#667085}
+.request-filter-panel{margin:10px 0;padding:10px;border:1px solid #e2e6eb;border-radius:12px;background:#fff}
+.request-filter-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:8px}
+.request-filter-grid input,.request-filter-grid select{width:100%;box-sizing:border-box}
+.request-timing{margin-top:5px;color:#667085;font-size:12px;display:flex;gap:8px;flex-wrap:wrap}
+.request-age{font-weight:700}
+@media(max-width:700px){.request-kpi-grid{grid-template-columns:repeat(2,1fr)}.request-filter-grid{grid-template-columns:1fr 1fr}}
