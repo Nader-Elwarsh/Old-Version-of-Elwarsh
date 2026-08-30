@@ -2,6 +2,27 @@
 <main class="page"><a class="back" href="index.html">← الرئيسية</a><h1>💳 الحسابات</h1>
 <section class="panel" id="walletsPage"></section>
 <p class="hint">الحسابات هنا مربوطة بأوامر الشغل: تحديد محفظة الدفع في العربون أو التحصيل النهائي بيسجل الحركة هنا تلقائيًا. تقدر كمان تسجل مصاريفك الشخصية ومصاريف التشغيل يدويًا من نفس المكان. أسماء المحافظ وتصنيفات الحركة قابلة للتعديل من ⚙️ الإعدادات.</p>
+<section class="report" id="reportSection">
+  <div class="dash-head"><h2>📈 كشف الحساب</h2></div>
+  <div class="report-mode-toggle">
+    <button type="button" id="modeMonthBtn" class="secondary mini-action active-track" onclick="setReportMode('month')">📆 شهري</button>
+    <button type="button" id="modeWeekBtn" class="secondary mini-action" onclick="setReportMode('week')">🗓️ أسبوعي (الاثنين‑السبت)</button>
+  </div>
+  <input id="reportMonth" type="month">
+  <input id="reportWeek" type="week" class="hidden">
+  <div id="monthlyReport"></div>
+  <details class="expense-panel">
+    <summary>🧯 مصاريف التشغيل</summary>
+    <div class="form-grid expense-form">
+      <label>التاريخ<input id="expDate" type="date"></label>
+      <label>التصنيف<select id="expCategory"></select></label>
+      <label>المبلغ<input id="expAmount" type="number" step="0.01" min="0" placeholder="0.00"></label>
+      <label class="wide">ملاحظة<input id="expNote" placeholder="اختياري"></label>
+    </div>
+    <button type="button" class="primary expense-save" onclick="addExpense()">💾 حفظ المصروف</button>
+    <div id="expenseList"></div>
+  </details>
+</section>
 </main><script src="notif-shared.js"></script>
   <script src="shared-data.js"></script><script src="global-search.js"></script><script src="image-store.js"></script><script src="migrations.js"></script><script src="treasury.js"></script><script src="wallets.js"></script><script src="tasks.js"></script><script src="app-shared.js"></script><script src="app-dashboard-reports.js"></script><script src="app-customers.js"></script><script src="app-devices.js"></script><script src="app-requests.js"></script><script src="app-settings-lists.js"></script><script src="app-parts.js"></script><script src="app-settings.js"></script><script src="app-delete-tools.js"></script><script src="app-route-followup.js"></script><script src="app-data-management.js"></script><script src="app-quick-add.js"></script><script src="app-notifications-bootstrap.js"></script>
 <script>document.addEventListener("DOMContentLoaded",()=>renderWallets())</script>
