@@ -1,5 +1,5 @@
 /* app-data-management.js — حذف كل البيانات التشغيلية + النسخ الاحتياطي واستعادته. */
-async function deleteAllOperationalData(){if(!confirm("سيتم حذف العملاء والأجهزة وأوامر الشغل وقطع الغيار وحركات المخزن والمصاريف وحركات الخزنة. الإعدادات والمراكز والقرى لن تتأثر. هل تريد المتابعة؟"))return;if(!confirm("تأكيد نهائي جدًا: حذف كل البيانات التشغيلية؟"))return;[K.c,K.d,K.r,K.p,K.m,K.e,K.tr].forEach(k=>put(k,[]));if(window.ImageStore?.clearAll)await window.ImageStore.clearAll();alert("تم حذف كل البيانات التشغيلية. سيتم تحديث الصفحة.");location.reload()}
+async function deleteAllOperationalData(){if(!confirm("سيتم حذف العملاء والأجهزة وأوامر الشغل وقطع الغيار وحركات المخزن والمصاريف وحركات الحسابات والخزنة. الإعدادات والمراكز والقرى لن تتأثر. هل تريد المتابعة؟"))return;if(!confirm("تأكيد نهائي جدًا: حذف كل البيانات التشغيلية؟"))return;[K.c,K.d,K.r,K.p,K.m,K.e,K.tr,K.wtx].forEach(k=>put(k,[]));if(window.ImageStore?.clearAll)await window.ImageStore.clearAll();alert("تم حذف كل البيانات التشغيلية. سيتم تحديث الصفحة.");location.reload()}
 
 // النسخة الاحتياطية: تصدير كل بيانات النظام (localStorage) + كل الصور
 // (IndexedDB عبر ImageStore) كملف JSON واحد، واسترجاعها لاحقًا.

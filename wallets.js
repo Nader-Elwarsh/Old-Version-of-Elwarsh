@@ -273,7 +273,7 @@ function renderWalletDetail(){
     ${entries.length?entries.map(x=>`<div class="treasury-row ${x.type}">
       <div class="treasury-row-main">
         <b>${esc(x.reason||"—")}</b>
-        <small>${esc(new Date((x.date||today)+"T"+(x.time||"00:00")).toLocaleString("ar-EG"))}${!isWallet?` • 💳 ${esc(x.wallet||"—")}`:""} • 🏷️ ${esc(x.category||"أخرى")}${x.source==="order-link"?" • 🔗 أمر شغل":""}${x.source==="transfer"?" • 🔁 تحويل":""}</small>
+        <small>${esc(new Date((x.date||today)+"T"+(x.time||"00:00")).toLocaleString("ar-EG"))}${!isWallet?` • 💳 ${esc(x.wallet||"—")}`:""} • 🏷️ ${esc(x.category||"أخرى")}${x.subCategory?` • 📂 ${esc(x.subCategory)}`:""}${x.source==="order-link"?" • 🔗 أمر شغل":""}${x.source==="transfer"?" • 🔁 تحويل":""}${x.source==="migrated-expense"?" • ↩️ مرحّل من كشف الحساب القديم":""}</small>
         ${x.note?`<small>📝 ${esc(x.note)}</small>`:""}
       </div>
       <div class="treasury-row-amount ${x.type}">${x.type==="in"?"+":"−"}${(+x.amount||0).toFixed(2)} ج</div>

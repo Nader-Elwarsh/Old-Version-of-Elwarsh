@@ -68,7 +68,7 @@ function deleteTreasuryEntry(entryId){
 function operationalTreasurySummary(){
   let deposits=arr(K.r).reduce((a,x)=>a+(+x.deposit||0),0);
   let finalCollections=arr(K.r).filter(x=>x.closed||x.paid).reduce((a,x)=>a+Math.max(0,(+x.total||0)-(+x.deposit||0)),0);
-  let expenses=arr(K.e).reduce((a,x)=>a+(+x.amount||0),0);
+  let expenses=(typeof walletTxEntries==="function"?walletTxEntries():[]).filter(x=>x.category==="مصروف تشغيل").reduce((a,x)=>a+(x.type==="in"?-(+x.amount||0):(+x.amount||0)),0);
   return {deposits,finalCollections,orderCollections:deposits+finalCollections,expenses};
 }
 function renderTreasury(){

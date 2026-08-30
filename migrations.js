@@ -95,10 +95,37 @@
     put(K.s, s);
   }
 
+  // ترحيل 4 → 5: توحيد "مصاريف التشغيل" في مكان واحد. كان فيه قايمة
+  // مصاريف منفصلة (K.e) بتظهر في كشف الحساب بس، وحركة محفظة بتصنيف
+  // "مصروف تشغيل" بتقلل رصيد محفظة فعليًا. من دلوقتي حركة المحفظة هي
+  // المصدر الوحيد، فبننقل أي سجل قديم من القايمة المنفصلة لحركة محفظة
+  // بنفس التفاصيل (تصنيفه القديم بقى "تصنيف فرعي" على الحركة)، على
+  // أول محفظة في الإعدادات كمحفظة افتراضية للترحيل. القايمة القديمة
+  // (K.e) بتفضل في مكانها كنسخة احتياطية بس من غير ما يقرأها أي كود
+  // تاني بعد كده.
+  function migrate4to5() {
+    let K = window.K;
+    let oldExpenses = arr(K.e);
+    if (!oldExpenses.length) return;
+    let s = get(K.s, null) || {};
+    let fallbackWallet = (Array.isArray(s.wallets) && s.wallets[0]) || "محفظتي الشخصية";
+    let existing = arr(K.wtx);
+    let migrated = oldExpenses.map(e => ({
+      id: id(), refKey: null, manualOverride: true, deleted: false, type: "out",
+      amount: +e.amount || 0, wallet: fallbackWallet, category: "مصروف تشغيل",
+      subCategory: e.category || "أخرى",
+      date: e.date || (e.createdAt || "").slice(0, 10) || new Date().toISOString().slice(0, 10),
+      time: "00:00", reason: e.category || "مصروف تشغيل", note: e.note || "",
+      source: "migrated-expense", createdAt: e.createdAt || new Date().toISOString()
+    }));
+    put(K.wtx, existing.concat(migrated));
+  }
+
   const MIGRATIONS = [
     { from: 1, to: 2, run: migrate1to2 },
     { from: 2, to: 3, run: migrate2to3 },
-    { from: 3, to: 4, run: migrate3to4 }
+    { from: 3, to: 4, run: migrate3to4 },
+    { from: 4, to: 5, run: migrate4to5 }
   ];
 
   async function runMigrations() {

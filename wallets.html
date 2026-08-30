@@ -13,10 +13,13 @@
   <div id="monthlyReport"></div>
   <details class="expense-panel">
     <summary>🧯 مصاريف التشغيل</summary>
+    <div class="hint">كل مصروف تشغيل بيتسجل كحركة صرف فعلية من محفظة تختارها، فرصيدها بيتحدث تلقائيًا؛ التصنيف الفرعي (وقود، صيانة، إيجار...) قابل للتعديل من ⚙️ الإعدادات.</div>
     <div class="form-grid expense-form">
       <label>التاريخ<input id="expDate" type="date"></label>
-      <label>التصنيف<select id="expCategory"></select></label>
+      <label>المحفظة<select id="expWallet"></select></label>
+      <label>تصنيف المصروف<select id="expCategory"></select></label>
       <label>المبلغ<input id="expAmount" type="number" step="0.01" min="0" placeholder="0.00"></label>
+      <label class="wide">السبب<input id="expReason" placeholder="مثال: بنزين، غيار زيت..."></label>
       <label class="wide">ملاحظة<input id="expNote" placeholder="اختياري"></label>
     </div>
     <button type="button" class="primary expense-save" onclick="addExpense()">💾 حفظ المصروف</button>

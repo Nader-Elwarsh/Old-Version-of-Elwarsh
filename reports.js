@@ -12,11 +12,11 @@
   function inRangeDate(v,r){if(!v)return false;let d=new Date(v);return !Number.isNaN(d.getTime())&&d>=r.start&&d<=r.end}
   function inRangeDay(v,r){if(!v)return false;let k=String(v).slice(0,10);return k>=r.from&&k<=r.to}
   function orders(r){return arr(K.r).filter(x=>inRangeDate(x.createdAt,r)||inRangeDate(x.closedAt,r))}
-  function expenses(r){return arr(K.e).filter(x=>inRangeDay(x.date,r))}
+  function expenses(r){return (typeof walletTxEntries==="function"?walletTxEntries():[]).filter(x=>x.category==="مصروف تشغيل"&&inRangeDay(x.date,r))}
   function treasuryUntil(end){return arr(K.tr).filter(x=>!x.deleted&&new Date((x.date||'1970-01-01')+'T'+(x.time||'00:00'))<=end).reduce((a,x)=>a+(x.type==='in'?(+x.amount||0):-(+x.amount||0)),0)}
   function reportData(){
     const r=range(),os=orders(r),ex=expenses(r),cs=arr(K.c),ds=arr(K.d),ps=arr(K.p),ts=arr(K.tasks).filter(x=>inRangeDay(x.date,r)),tr=arr(K.tr).filter(x=>!x.deleted&&inRangeDay(x.date,r));
-    const closedOrders=os.filter(x=>x.closed),labor=closedOrders.reduce((a,x)=>a+(+x.labor||0),0),partsSell=closedOrders.reduce((a,x)=>a+(+x.partsTotal||0),0),partsCost=closedOrders.reduce((a,x)=>a+(+x.partsCost||0),0),revenue=labor+partsSell,gross=revenue-partsCost,totalExp=ex.reduce((a,x)=>a+(+x.amount||0),0),net=gross-totalExp;
+    const closedOrders=os.filter(x=>x.closed),labor=closedOrders.reduce((a,x)=>a+(+x.labor||0),0),partsSell=closedOrders.reduce((a,x)=>a+(+x.partsTotal||0),0),partsCost=closedOrders.reduce((a,x)=>a+(+x.partsCost||0),0),revenue=labor+partsSell,gross=revenue-partsCost,totalExp=ex.reduce((a,x)=>a+(x.type==="in"?-(+x.amount||0):(+x.amount||0)),0),net=gross-totalExp;
     const completed=os.filter(x=>x.closed||x.status==='مكتمل').length,open=os.filter(x=>!x.closed&&x.status!=='ملغي').length,waiting=os.filter(x=>x.partsWaiting===true||x.partsWaiting==='yes').length,workshop=os.filter(x=>x.executionPlace==='الورشة'||(x.workshopStatus&&x.workshopStatus!=='غير مطلوب'&&x.workshopStatus!=='تم التسليم')).length;
     return {r,os,ex,cs,ds,ps,ts,tr,labor,partsSell,partsCost,revenue,gross,totalExp,net,completed,open,waiting,workshop,low:ps.filter(p=>(+p.qty||0)<=(+p.min||0)).length,treasuryBalance:treasuryUntil(r.end)};
   }
