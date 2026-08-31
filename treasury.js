@@ -59,11 +59,20 @@ function editTreasuryEntry(entryId){
 }
 function deleteTreasuryEntry(entryId){
   let a0=arr(K.tr),e0=a0.find(x=>x.id===entryId);
-  let msg=e0&&e0.source==="transfer"?"هذه حركة تحويل مرتبطة بحركة مقابلة في المحفظة. حذفها من هنا لن يحذف الحركة المقابلة تلقائيًا. تأكيد الحذف؟":"حذف هذه الحركة من كشف الخزنة؟";
+  let isTransfer=e0&&e0.source==="transfer"&&e0.transferId;
+  let msg=isTransfer?"هذه حركة تحويل مرتبطة بحركة مقابلة في المحفظة. حذف الحركتين معًا (من الخزنة والمحفظة)؟":"حذف هذه الحركة من كشف الخزنة؟";
   if(!confirm(msg))return;
   let a=arr(K.tr),idx=a.findIndex(x=>x.id===entryId);if(idx<0)return;
   if(a[idx].refKey==="opening-balance"){alert("رصيد الافتتاح يُعدل من قسم الرصيد الافتتاحي ولا يُحذف من هنا.");return}
-  a.splice(idx,1);put(K.tr,a);renderTreasury();
+  let transferId=a[idx].transferId;
+  a.splice(idx,1);put(K.tr,a);
+  if(isTransfer&&transferId){
+    let w=arr(K.wtx),widx=w.findIndex(x=>x.transferId===transferId&&x.source==="transfer"&&!x.deleted);
+    if(widx>=0){w[widx].deleted=true;put(K.wtx,w)}
+  }
+  renderTreasury();
+  if(typeof renderWallets==="function")renderWallets();
+  if(typeof renderWalletDetail==="function")renderWalletDetail();
 }
 function operationalTreasurySummary(){
   let deposits=arr(K.r).reduce((a,x)=>a+(+x.deposit||0),0);

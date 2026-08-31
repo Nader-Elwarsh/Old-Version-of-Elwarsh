@@ -81,9 +81,16 @@ function editWalletTx(txId){
 }
 function deleteWalletTx(txId){
   let a=arr(K.wtx),e=a.find(x=>x.id===txId);if(!e)return;
-  let msg=e.refKey?"هذه الحركة مرتبطة بأمر شغل. حذفها من هنا لن يعدّل أمر الشغل نفسه، بس هتختفي من كشف المحفظة. تأكيد الحذف؟":"حذف هذه الحركة من كشف المحفظة؟";
+  let isTransfer=e.source==="transfer"&&e.transferId;
+  let msg=isTransfer?"هذه حركة تحويل مرتبطة بحركة مقابلة في الخزنة. حذف الحركتين معًا (من المحفظة والخزنة)؟":(e.refKey?"هذه الحركة مرتبطة بأمر شغل. حذفها من هنا لن يعدّل أمر الشغل نفسه، بس هتختفي من كشف المحفظة. تأكيد الحذف؟":"حذف هذه الحركة من كشف المحفظة؟");
   if(!confirm(msg))return;
-  e.deleted=true;put(K.wtx,a);renderWallets();renderWalletDetail();
+  e.deleted=true;put(K.wtx,a);
+  if(isTransfer){
+    let t=arr(K.tr),tidx=t.findIndex(x=>x.transferId===e.transferId&&x.source==="transfer");
+    if(tidx>=0){t.splice(tidx,1);put(K.tr,t)}
+  }
+  renderWallets();renderWalletDetail();
+  if(typeof renderTreasury==="function")renderTreasury();
 }
 
 /* ---------------------------------------------------------------------
@@ -294,11 +301,14 @@ function renderWallets(){
     <div class="treasury-balance">
       <span>إجمالي أرصدة كل الحسابات</span><b>${walletsTotalBalance().toFixed(2)} ج</b>
     </div>
+    <a class="wallet-icon-card treasury-peek" href="treasury.html" style="display:flex;margin:10px 0"><i>🏦</i><b>رصيد الخزنة (درج نقدي مستقل)</b><span>${(typeof treasuryBalance==="function"?treasuryBalance():0).toFixed(2)} ج</span></a>
+    <div class="hint" style="margin:-4px 0 10px">🏦 الخزنة حساب مستقل تمامًا ومش داخلة في الإجمالي اللي فوق.</div>
     <div class="wallet-icon-grid">
       <a class="wallet-icon-card" href="wallet.html?type=category&name=${encodeURIComponent("مصروف شخصي")}"><i>🙋</i><b>حساب مصاريفي الشخصية</b><span>${pvw.personal.toFixed(2)} ج</span></a>
       <a class="wallet-icon-card" href="wallet.html?type=category&name=${encodeURIComponent("مصروف تشغيل")}"><i>🔧</i><b>حساب مصاريف الورشة (تشغيل)</b><span>${pvw.workshop.toFixed(2)} ج</span></a>
       ${overview.map(w=>`<a class="wallet-icon-card" href="wallet.html?type=wallet&name=${encodeURIComponent(w.name)}"><i>💳</i><b>${esc(w.name)}</b><span>${w.balance.toFixed(2)} ج</span></a>`).join("")}
     </div>
+    <div class="hint" style="margin-top:6px">ملحوظة: "مصاريفي الشخصية" و"مصاريف الورشة" مش رصيد فلوس منفصل، هما تجميع للحركات اللي جوه المحافظ فوق أصلاً — عشان كده مش بيتحسبوا في الإجمالي، ولو جمعتهم هيبقى فيه تكرار.</div>
     ${overview.length?"":`<div class="hint">لا توجد حسابات بعد. أضفها من ⚙️ الإعدادات ← الحسابات.</div>`}
     ${walletTransferWidgetHtml()}
     <details class="expense-panel">
