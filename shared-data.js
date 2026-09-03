@@ -54,7 +54,19 @@
     try { let x = JSON.parse(localStorage.getItem(k)); return x ?? f; }
     catch { return f; }
   }
-  function put(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+  function put(k, v) {
+    try {
+      localStorage.setItem(k, JSON.stringify(v));
+      return true;
+    } catch (e) {
+      // مساحة التخزين المخصصة للمتصفح امتلأت (أو خاصية التخزين متعطّلة، زي
+      // وضع التصفح الخاص في بعض المتصفحات) — من غير هذا الفحص كانت العملية
+      // بتفشل بصمت والمستخدم يفتكر إن البيانات اتحفظت وهي فعليًا لأ.
+      console.error(`[WorkshopData] فشل حفظ "${k}" في localStorage:`, e);
+      alert("⚠️ لم يتم الحفظ! مساحة التخزين في المتصفح ممتلئة على ما يبدو.\n\nخد نسخة احتياطية فورًا من بيانات موجودة (لو قدرت)، وامسح بيانات قديمة مش محتاجها من ⚙️ الإعدادات، أو فرّغ مساحة على الجهاز.");
+      return false;
+    }
+  }
   function arr(k) { return get(k, []); }
   function esc(v) {
     return String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[c]));
