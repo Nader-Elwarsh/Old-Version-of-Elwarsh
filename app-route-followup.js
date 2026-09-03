@@ -3,6 +3,7 @@
 // المستقلة (route.html) و/أو ودجت "خط سير اليوم" داخل صفحة الأوامر —
 // كل دالة بترجع بهدوء لو مافيش عنصرها في الصفحة.
 function refreshRouteViews(){
+  if(typeof renderRouteDayStrip==="function")renderRouteDayStrip();
   if(typeof renderRoute==="function")renderRoute();
   if(typeof renderRequests==="function")renderRequests();
 }
@@ -42,24 +43,87 @@ function moveRouteItem(id,delta){
   const i=ids.indexOf(id),j=i+delta;if(i<0||j<0||j>=ids.length)return;
   [ids[i],ids[j]]=[ids[j],ids[i]];saveRouteOrder(ids);refreshRouteViews();
 }
+
+// ---- خط سير الورشة: كل الأيام مش بس اليوم ----
+// حالة الصفحة (اليوم المختار / وضع "كل المتأخر") محفوظة في متغيّر بسيط بدل
+// localStorage عشان بتتصفّر كل ما تفتح الصفحة من جديد على اليوم الحالي.
+const routeViewState={day:null,overdueView:false};
+function routeDaysWithData(){
+  const set=new Set();
+  arr(K.r).forEach(x=>{
+    if(x.visit){let k=dayKeyLocal(x.visit);if(k)set.add(k)}
+    if(x.closed&&x.closedAt){let k=dayKeyLocal(x.closedAt);if(k)set.add(k)}
+  });
+  set.add(dayKeyLocal(new Date()));
+  return[...set].sort();
+}
+function routeDayLabel(day){
+  const d=new Date(day+"T00:00:00");
+  if(Number.isNaN(d.getTime()))return day;
+  return d.toLocaleDateString("ar-EG",{weekday:"long"})+" "+d.toLocaleDateString("ar-EG",{day:"2-digit",month:"2-digit"});
+}
+function routeDayShort(day){
+  const d=new Date(day+"T00:00:00");
+  if(Number.isNaN(d.getTime()))return day;
+  return{label:d.toLocaleDateString("ar-EG",{weekday:"short"}),date:d.toLocaleDateString("ar-EG",{day:"2-digit",month:"2-digit"})};
+}
+function ordersForRouteDay(day){
+  const customers=arr(K.c);
+  return arr(K.r).filter(x=>{
+    if(x.visit&&dayKeyLocal(x.visit)===day)return true;
+    if(x.closed&&x.closedAt&&dayKeyLocal(x.closedAt)===day&&dayKeyLocal(x.visit)!==day)return true;
+    return false;
+  }).map(x=>({...x,_c:customers.find(z=>z.id===x.customerId)||{},_addr:resolveRequestAddress(x),_viaClosedOffSchedule:!!(x.closed&&x.closedAt&&dayKeyLocal(x.closedAt)===day&&dayKeyLocal(x.visit)!==day)}));
+}
+function jumpRouteToday(){
+  routeViewState.overdueView=false;
+  routeViewState.day=dayKeyLocal(new Date());
+  renderRouteDayStrip();renderRoute();
+}
+function selectRouteDay(day){
+  routeViewState.overdueView=false;
+  routeViewState.day=day;
+  renderRouteDayStrip();renderRoute();
+}
+function toggleRouteOverdueView(){
+  routeViewState.overdueView=!routeViewState.overdueView;
+  renderRouteDayStrip();renderRoute();
+}
+function renderRouteDayStrip(){
+  const el=document.getElementById("routeDayStrip");if(!el)return;
+  const today=dayKeyLocal(new Date());
+  if(!routeViewState.day)routeViewState.day=today;
+  const days=routeDaysWithData();
+  const counts={};arr(K.r).forEach(x=>{if(x.visit){let k=dayKeyLocal(x.visit);if(k)counts[k]=(counts[k]||0)+1}if(x.closed&&x.closedAt){let k=dayKeyLocal(x.closedAt);if(k&&k!==dayKeyLocal(x.visit))counts[k]=(counts[k]||0)+1}});
+  el.innerHTML=days.map(d=>{
+    const s=routeDayShort(d),n=counts[d]||0,isToday=d===today,active=!routeViewState.overdueView&&d===routeViewState.day;
+    return `<button type="button" class="route-day-cell${active?" active":""}${isToday?" is-today":""}" onclick="selectRouteDay('${d}')"><small>${s.label}</small><b>${s.date}</b>${n?`<span class="badge">${n}</span>`:""}</button>`;
+  }).join("");
+  const overdueBtn=document.getElementById("routeOverdueToggle");
+  if(overdueBtn)overdueBtn.classList.toggle("active",routeViewState.overdueView);
+}
 function renderRoute(){
   let el=document.getElementById("routeList");if(!el)return;
-  let today=dayKeyLocal(new Date()), cf=document.getElementById("routeCenterFilter")?.value||"", mode=document.getElementById("routeMode")?.value||"today", summaryEl=document.getElementById("routeSummary");
+  let today=dayKeyLocal(new Date()), cf=document.getElementById("routeCenterFilter")?.value||"", summaryEl=document.getElementById("routeSummary");
+  if(!routeViewState.day)routeViewState.day=today;
   const allRequests=arr(K.r), customers=arr(K.c);
-  if(summaryEl){
-    let scheduledToday=allRequests.filter(x=>x.visit&&dayKeyLocal(x.visit)===today),closedToday=scheduledToday.filter(x=>x.closed),contactedToday=scheduledToday.filter(x=>x.contactStatus),visitedNotClosed=scheduledToday.filter(x=>!x.closed&&!x.contactStatus&&x.status!=="ملغي"&&x.visitedAt&&dayKeyLocal(x.visitedAt)===today),notVisited=scheduledToday.filter(x=>!x.closed&&!x.contactStatus&&x.status!=="ملغي"&&!(x.visitedAt&&dayKeyLocal(x.visitedAt)===today)),collectedToday=allRequests.filter(x=>x.paidAt&&dayKeyLocal(x.paidAt)===today).reduce((a,x)=>a+Math.max(0,(+x.total||0)-(+x.deposit||0)),0);
-    summaryEl.innerHTML=`<div class="route-summary"><div class="stat"><b>${scheduledToday.length}</b><span>📅 المجدول اليوم</span></div><div class="stat"><b>${closedToday.length}</b><span>✅ أُغلق وتم التحصيل</span></div><div class="stat"><b>${visitedNotClosed.length}</b><span>🚶 تمت الزيارة والعمل جارٍ</span></div><div class="stat"><b>${notVisited.length}</b><span>⏳ لم تتم الزيارة بعد</span></div><div class="stat"><b>${collectedToday.toFixed(2)} ج</b><span>💰 المُحصَّل اليوم</span></div></div>`;
+  let list,headTitle;
+  if(routeViewState.overdueView){
+    list=allRequests.filter(x=>x.visit&&dayKeyLocal(x.visit)<today&&x.status!=="ملغي"&&!x.closed).map(x=>({...x,_c:customers.find(z=>z.id===x.customerId)||{},_addr:resolveRequestAddress(x),_viaClosedOffSchedule:false}));
+    headTitle="⚠️ كل الطلبات المتأخرة من كل الأيام";
+  }else{
+    list=ordersForRouteDay(routeViewState.day);
+    headTitle=`🗓️ خط سير يوم ${routeDayLabel(routeViewState.day)}`;
   }
-  let list=allRequests.filter(x=>x.visit).filter(x=>{
-    let k=dayKeyLocal(x.visit),pending=x.status!=="ملغي"&&!x.closed;
-    if(mode==="today")return k===today;
-    if(mode==="overdue")return k<today&&pending;
-    return k===today||(k<today&&pending);
-  }).map(x=>({...x,_c:customers.find(z=>z.id===x.customerId)||{},_addr:resolveRequestAddress(x)}));
+  if(summaryEl){
+    let dayList=routeViewState.overdueView?list:list, scheduledOnly=list;
+    let closedToday=scheduledOnly.filter(x=>x.closed),visitedNotClosed=scheduledOnly.filter(x=>!x.closed&&!x.contactStatus&&x.status!=="ملغي"&&x.visitedAt&&dayKeyLocal(x.visitedAt)===routeViewState.day),notVisited=scheduledOnly.filter(x=>!x.closed&&!x.contactStatus&&x.status!=="ملغي"&&!(x.visitedAt&&dayKeyLocal(x.visitedAt)===routeViewState.day)),collected=closedToday.reduce((a,x)=>a+Math.max(0,(+x.total||0)-(+x.deposit||0)),0),offSchedule=scheduledOnly.filter(x=>x._viaClosedOffSchedule).length;
+    summaryEl.innerHTML=`<div class="route-summary"><div class="stat"><b>${headTitle}</b><span>&nbsp;</span></div><div class="stat"><b>${scheduledOnly.length}</b><span>📋 إجمالي اليوم</span></div><div class="stat"><b>${closedToday.length}</b><span>✅ أُغلق وتم التحصيل</span></div><div class="stat"><b>${visitedNotClosed.length}</b><span>🚶 العمل جارٍ</span></div><div class="stat"><b>${notVisited.length}</b><span>⏳ لم تتم الزيارة بعد</span></div><div class="stat"><b>${collected.toFixed(2)} ج</b><span>💰 المُحصَّل</span></div>${offSchedule?`<div class="stat"><b>${offSchedule}</b><span>📦 اتقفل بدون جدولة مسبقة</span></div>`:""}</div>`;
+  }
   if(cf)list=list.filter(x=>x._addr.center===cf);
   const orderIds=routeOrderForList(list), byId=new Map(list.map(x=>[x.id,x]));
   list=orderIds.map(id=>byId.get(id)).filter(Boolean);
-  if(!list.length){el.innerHTML='<div class="item">لا يوجد مواعيد ضمن الاختيار الحالي.</div>';return}
+  if(!list.length){el.innerHTML=`<div class="item">لا يوجد مواعيد ضمن الاختيار الحالي.</div>`;return}
   let groups={};
   list.forEach(x=>{let k=x._addr.center||"بدون مركز";(groups[k]=groups[k]||[]).push(x)});
   let html="";
@@ -68,7 +132,7 @@ function renderRoute(){
     html+=groups[center].map(x=>{
       let visitedToday=!!(x.visitedAt&&dayKeyLocal(x.visitedAt)===today),isDone=x.status==="مكتمل";
       let contactBadge=x.contactStatus==='unavailable'?'<span class="badge route-badge-unavailable">📵 غير متاح</span>':x.contactStatus==='no-answer'?'<span class="badge route-badge-noanswer">📞 لم يرد</span>':'';
-      let stateBadge=x.closed?'<span class="badge route-badge-done">✅ مُغلق</span>':x.status==="ملغي"?'<span class="badge">🚫 ملغي</span>':contactBadge|| (visitedToday?'<span class="badge route-badge-visited">🚶 تمت الزيارة</span>':'<span class="badge route-badge-pending">⏳ قيد الانتظار</span>'),lateBadge=dayKeyLocal(x.visit)<today&&!x.closed&&x.status!=="ملغي"&&!x.contactStatus?'<span class="badge">⚠️ متأخر</span>':"";
+      let stateBadge=x.closed?'<span class="badge route-badge-done">✅ مُغلق</span>':x.status==="ملغي"?'<span class="badge">🚫 ملغي</span>':contactBadge|| (visitedToday?'<span class="badge route-badge-visited">🚶 تمت الزيارة</span>':'<span class="badge route-badge-pending">⏳ قيد الانتظار</span>'),lateBadge=dayKeyLocal(x.visit)<today&&!x.closed&&x.status!=="ملغي"&&!x.contactStatus?'<span class="badge">⚠️ متأخر</span>':"",offBadge=x._viaClosedOffSchedule?'<span class="badge route-badge-offsched" title="اتقفل هذا اليوم بدون ما يكون مجدول له أصلًا">📦 بدون جدولة</span>':"";
       const contactCollapsed=!!x.contactStatus && !x.closed && !isDone;
       if(isDone || contactCollapsed){
         const statusText=isDone?'✅ مكتمل':(x.contactStatus==='unavailable'?'📵 غير متاح':'📞 لم يرد');
@@ -79,7 +143,7 @@ function renderRoute(){
       }
       let toggleBtn=(!x.closed&&x.status!=="ملغي")?`<button type="button" class="secondary mini-action" onclick="event.preventDefault();event.stopPropagation();toggleVisited('${x.id}')">${visitedToday?"↩️ إلغاء تسجيل الزيارة":"✅ تسجيل الزيارة"}</button>`:"";
       let contactBtns=(!x.closed&&x.status!=="ملغي")?`<button type="button" class="route-contact-unavailable mini-action" onclick="event.preventDefault();event.stopPropagation();setRouteContactStatus('${x.id}','unavailable')">📵 غير متاح</button><button type="button" class="route-contact-noanswer mini-action" onclick="event.preventDefault();event.stopPropagation();setRouteContactStatus('${x.id}','no-answer')">📞 لم يرد</button>`:"";
-      return `<div class="item route-order-card" data-route-id="${x.id}"><div class="route-order-head"><a href="request.html?id=${x.id}"><b>🛠️ ${esc(x.no)}</b></a><span class="route-order-name">👤 ${esc(x._c.name||"")}</span><span class="route-head-status">${stateBadge}${lateBadge}</span></div><div class="route-order-data"><div class="route-data-cell">📍 <span>${esc(addressText(x._addr))}</span></div><div class="route-data-cell">📞 <span>${contactLinksHtml(x._c.phone)}</span></div><div class="route-data-cell">🔧 <span>${esc(deviceName(x.deviceId))}</span></div><div class="route-data-cell">📝 <span>${esc(x.fault||"")}</span></div><div class="route-data-cell">⏰ <span>${x.visit?new Date(x.visit).toLocaleString("ar-EG",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):""}</span></div>${x.closed?`<div class="route-data-cell">💰 <span>${Math.max(0,(+x.total||0)-(+x.deposit||0)).toFixed(2)} ج</span></div>`:""}</div><div class="route-order-actions">${toggleBtn?`<div class="route-visit-row">${toggleBtn}</div>`:""}${contactBtns?`<div class="route-contact-row">${contactBtns}</div>`:""}<div class="route-arrows-row"><button type="button" class="route-up-btn mini-action" onclick="event.preventDefault();moveRouteItem('${x.id}',-1)" title="تحريك لأعلى">⬆️</button><button type="button" class="route-down-btn mini-action" onclick="event.preventDefault();moveRouteItem('${x.id}',1)" title="تحريك لأسفل">⬇️</button></div></div></div>`;
+      return `<div class="item route-order-card" data-route-id="${x.id}" onclick="location.href='request.html?id=${x.id}'" title="اضغط لعرض تفاصيل أمر الشغل"><div class="route-order-head"><a href="request.html?id=${x.id}" onclick="event.stopPropagation()"><b>🛠️ ${esc(x.no)}</b></a><span class="route-order-name">👤 ${esc(x._c.name||"")}</span><span class="route-head-status">${stateBadge}${lateBadge}${offBadge}</span></div><div class="route-order-data"><div class="route-data-cell">📍 <span>${esc(addressText(x._addr))}</span></div><div class="route-data-cell">📞 <span>${contactLinksHtml(x._c.phone)}</span></div><div class="route-data-cell">🔧 <span>${esc(deviceName(x.deviceId))}</span></div><div class="route-data-cell">📝 <span>${esc(x.fault||"")}</span></div><div class="route-data-cell">⏰ <span>${x.visit?new Date(x.visit).toLocaleString("ar-EG",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):""}</span></div>${x.closed?`<div class="route-data-cell">💰 <span>${Math.max(0,(+x.total||0)-(+x.deposit||0)).toFixed(2)} ج</span></div>`:""}</div><div class="route-order-actions">${toggleBtn?`<div class="route-visit-row">${toggleBtn}</div>`:""}${contactBtns?`<div class="route-contact-row">${contactBtns}</div>`:""}<div class="route-arrows-row"><button type="button" class="route-up-btn mini-action" onclick="event.preventDefault();event.stopPropagation();moveRouteItem('${x.id}',-1)" title="تحريك لأعلى">⬆️</button><button type="button" class="route-down-btn mini-action" onclick="event.preventDefault();event.stopPropagation();moveRouteItem('${x.id}',1)" title="تحريك لأسفل">⬇️</button></div></div></div>`;
     }).join("");
   });
   el.innerHTML=html;
@@ -88,7 +152,9 @@ function initRoutePage(){
   let cfEl=document.getElementById("routeCenterFilter");if(!cfEl)return;
   cfEl.innerHTML='<option value="">🗺️ كل المراكز</option>'+(settings().centers||[]).map(x=>`<option>${esc(x)}</option>`).join("");
   cfEl.onchange=renderRoute;
-  document.getElementById("routeMode").onchange=renderRoute;
+  routeViewState.day=dayKeyLocal(new Date());
+  routeViewState.overdueView=false;
+  renderRouteDayStrip();
   renderRoute();
 }
 

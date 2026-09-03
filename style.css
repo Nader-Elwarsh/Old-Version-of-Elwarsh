@@ -9,6 +9,17 @@
 .route-badge-done{background:#e3f6ea;color:#18794e}
 .route-badge-visited{background:#e7f0ff;color:#1f4fa3}
 .route-badge-pending{background:#fff3cd;color:#8a6d1f}
+.route-badge-offsched{background:#fde8d7;color:#a1520c}
+.route-order-card{cursor:pointer}
+.route-day-strip{display:flex;gap:8px;overflow-x:auto;padding:6px 2px 12px;-webkit-overflow-scrolling:touch}
+.route-day-cell{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:2px;background:#fff;border:1px solid #e1e7ec;border-radius:12px;padding:8px 12px;cursor:pointer;font-family:inherit;position:relative;min-width:58px}
+.route-day-cell small{color:#687583;font-size:11px}
+.route-day-cell b{font-size:14px}
+.route-day-cell.is-today{border-color:#17324d}
+.route-day-cell.active{background:#17324d;border-color:#17324d}
+.route-day-cell.active small,.route-day-cell.active b{color:#fff}
+.route-day-cell .badge{position:absolute;top:-8px;left:-6px;background:#e85d04;color:#fff;padding:2px 6px;font-size:10px}
+#routeOverdueToggle.active{background:#fde3e3;color:#a11}
 @media(max-width:650px){.route-summary{grid-template-columns:repeat(2,1fr)}}
 .card-accent-gold i{background:linear-gradient(135deg,#e8a13a,#c77d0e);color:#fff}
 .treasury-balance{background:linear-gradient(135deg,#17324d,#0c1c2c);color:#fff;border-radius:14px;padding:18px;text-align:center;margin-bottom:14px}
