@@ -1,4 +1,4 @@
-const CACHE_NAME = "workshop-v11-45";
+const CACHE_NAME = "workshop-v11-46";
 importScripts("./notif-shared.js");
 const CORE_FILES = [
   "./",
@@ -80,35 +80,53 @@ self.addEventListener("fetch", event => {
   // HTML pages: cache by pathname, not by query string.
   // This makes customer.html?id=..., device.html?id=... and request.html?id=...
   // open correctly while offline; the app-*.js files read the ID from the URL.
+  //
+  // Strategy: Stale-While-Revalidate. اعرض النسخة المحفوظة فورًا لو موجودة
+  // (سرعة فورية زي التصفح العادي)، وفي نفس الوقت هات نسخة جديدة من الشبكة
+  // في الخلفية واحفظها في الكاش عشان المرة الجاية — من غير ما تخلي المستخدم
+  // ينتظر الشبكة كل ضغطة. لو النسخة المحفوظة مش موجودة أصلاً (أول زيارة)،
+  // ننتظر الشبكة عادي.
   if (request.mode === "navigate") {
+    const cacheKey = new Request(url.origin + url.pathname, { method: "GET" });
     event.respondWith(
-      fetch(request)
-        .then(response => {
-          const copy = response.clone();
-          const cacheKey = new Request(url.origin + url.pathname, {method:"GET"});
-          caches.open(CACHE_NAME).then(cache => cache.put(cacheKey, copy));
-          return response;
+      caches.open(CACHE_NAME).then(cache =>
+        cache.match(cacheKey).then(cached => {
+          const networkUpdate = fetch(request)
+            .then(response => {
+              if (response && response.ok) cache.put(cacheKey, response.clone());
+              return response;
+            })
+            .catch(() => null);
+          if (cached) {
+            event.waitUntil(networkUpdate);
+            return cached;
+          }
+          return networkUpdate.then(r => r || caches.match("./index.html"));
         })
-        .catch(() => {
-          const cacheKey = new Request(url.origin + url.pathname, {method:"GET"});
-          return caches.match(cacheKey).then(cached => cached || caches.match("./index.html"));
-        })
+      )
     );
     return;
   }
 
-  // Static files: network first when online so a newly deployed version is
-  // picked up quickly; fall back to the local cache when offline.
+  // Static files (JS/CSS/صور): نفس منطق Stale-While-Revalidate — عرض فوري
+  // من الكاش، وتحديث صامت في الخلفية عشان أي نسخة جديدة تتنزل تظهر في
+  // الزيارة اللي بعدها من غير ما تبطّئ الزيارة الحالية.
   event.respondWith(
-    fetch(request)
-      .then(response => {
-        if (response.ok) {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+    caches.open(CACHE_NAME).then(cache =>
+      cache.match(request).then(cached => {
+        const networkUpdate = fetch(request)
+          .then(response => {
+            if (response && response.ok) cache.put(request, response.clone());
+            return response;
+          })
+          .catch(() => null);
+        if (cached) {
+          event.waitUntil(networkUpdate);
+          return cached;
         }
-        return response;
+        return networkUpdate.then(r => r || cached);
       })
-      .catch(() => caches.match(request))
+    )
   );
 });
 
