@@ -136,6 +136,7 @@
     s.units = s.units || ["قطعة", "متر", "كيلو", "لتر", "مجموعة"];
     s.addressTypes = s.addressTypes || ["العنوان الأساسي", "العنوان الإضافي"];
     s.orderTags = s.orderTags || [];
+    s.orderTagsDisabled = Array.isArray(s.orderTagsDisabled) ? s.orderTagsDisabled : [];
     s.villageGroups = s.villageGroups || {};
     s.expenseCategories = s.expenseCategories || ["وقود ومواصلات", "صيانة عدة وأدوات", "إيجار وفواتير", "أخرى"];
     s.routeOrder = Array.isArray(s.routeOrder) ? s.routeOrder : [];

@@ -355,6 +355,15 @@
     renderParts();
   };
 
+  window.showPartsValueBreakdown = function (mode) {
+    state.parts = true;
+    state.partBucket = "value";
+    state.partValueMode = mode === "use" ? "use" : "buy";
+    state.partCategory = "";
+    $("partSearch")?.classList.remove("hidden");
+    renderParts();
+  };
+
   window.hideAllParts = function () {
     state.parts = false;
     state.partBucket = "";
@@ -377,6 +386,8 @@
         cats[key] = (cats[key] || 0) + 1;
       });
       const low = all.filter(p => (+p.qty || 0) <= (+p.min || 0)).length;
+      const stockValueBuy = all.reduce((a, p) => a + (+p.qty || 0) * (+p.buy || 0), 0);
+      const stockValueUse = all.reduce((a, p) => a + (+p.qty || 0) * (+p.use || 0), 0);
       const cards = Object.entries(cats).slice(0, 6).map(([k,n]) =>
         `<button type="button" class="simple-stat" onclick="showPartsCategory('${k.replace(/'/g,"\\'")}')"><span>${categoryIcon(k)}</span><b>${esc2(k)}</b><strong>${n}</strong><small>قطعة</small></button>`
       ).join("");
@@ -384,6 +395,10 @@
       el.innerHTML = `
         <section class="simple-home">
           <div class="simple-summary-title"><b>📦 المخزن</b><span>${all.length} صنف</span></div>
+          <div class="simple-value-row">
+            <button type="button" class="simple-value-stat" onclick="showPartsValueBreakdown('buy')"><span>💰</span><b>قيمة المخزون بالتكلفة</b><strong>${stockValueBuy.toFixed(2)} ج</strong></button>
+            <button type="button" class="simple-value-stat" onclick="showPartsValueBreakdown('use')"><span>💵</span><b>قيمة المخزون ببيع الاستخدام</b><strong>${stockValueUse.toFixed(2)} ج</strong></button>
+          </div>
           ${low > 0 ? `<button type="button" class="simple-stock-alert" onclick="showLowStockParts()">⚠️ ${low} أصناف عند الحد الأدنى أو أقل</button>` : ""}
           ${cards ? `<div class="simple-stat-grid">${cards}</div>` : `<div class="simple-empty">لا توجد قطع مسجلة.</div>`}
           <div class="simple-main-actions">
@@ -396,14 +411,18 @@
     const q = ($("partSearch")?.value || "").toLowerCase().trim();
     const bucket = state.partBucket;
     const cat = state.partCategory;
-    const filtered = all.filter(p => {
+    const valueMode = state.partValueMode === "use" ? "use" : "buy";
+    let filtered = all.filter(p => {
       const ok = [p.name,p.code,p.location,p.category].filter(Boolean).join(" ").toLowerCase().includes(q);
       if (bucket === "low" && (+p.qty || 0) > (+p.min || 0)) return false;
       if (cat && (p.category || "أخرى") !== cat) return false;
       return ok;
     });
+    if (bucket === "value") {
+      filtered = filtered.slice().sort((a, b) => ((+b.qty||0)*(+b[valueMode]||0)) - ((+a.qty||0)*(+a[valueMode]||0)));
+    }
 
-    const listTitle = bucket === "low" ? "أصناف عند الحد الأدنى أو أقل" : cat ? esc2(cat) : "كل القطع";
+    const listTitle = bucket === "low" ? "أصناف عند الحد الأدنى أو أقل" : bucket === "value" ? `قيمة المخزون ${valueMode === "use" ? "ببيع الاستخدام" : "بالتكلفة"} — ${filtered.reduce((a,p)=>a+(+p.qty||0)*(+p[valueMode]||0),0).toFixed(2)} ج` : cat ? esc2(cat) : "كل القطع";
 
     el.innerHTML = `
       <div class="simple-list-head">
@@ -416,7 +435,7 @@
           <div class="simple-record-main">
             <a href="part.html?id=${p.id}"><b>${esc2(p.name)}</b></a>
             <span>${esc2(p.category || "—")} • ${esc2(p.code || "بدون كود")}</span>
-            <small>📍 ${esc2(p.location || "—")} • شراء ${(+p.buy||0).toFixed(2)} ج • استخدام ${(+p.use||0).toFixed(2)} ج • 📈 ${((+p.use||0)>0?(((+p.use||0)-(+p.buy||0))/(+p.use||0)*100):0).toFixed(1)}%</small>
+            <small>📍 ${esc2(p.location || "—")} • شراء ${(+p.buy||0).toFixed(2)} ج • استخدام ${(+p.use||0).toFixed(2)} ج • 📈 ${((+p.use||0)>0?(((+p.use||0)-(+p.buy||0))/(+p.use||0)*100):0).toFixed(1)}%${bucket === "value" ? ` • 💰 قيمة الصنف: ${((+p.qty||0)*(+p[valueMode]||0)).toFixed(2)} ج` : ""}</small>
           </div>
           <span class="simple-qty ${(+p.qty||0) <= (+p.min||0) ? "low" : ""}">${+p.qty||0}</span>
           <div class="simple-record-actions"><a class="secondary small-btn" href="part.html?id=${p.id}">فتح</a><button type="button" class="danger-btn small-btn" onclick="deletePartRecord('${p.id}')">🗑️ حذف</button></div>

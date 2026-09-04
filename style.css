@@ -7,6 +7,16 @@
 .route-summary .stat b{display:block;font-size:16px}
 .route-summary .stat span{font-size:11px;color:#687583}
 .route-badge-done{background:#e3f6ea;color:#18794e}
+.part-autocomplete{position:relative}
+.part-autocomplete-input{width:100%}
+.part-autocomplete-results{position:absolute;z-index:20;top:calc(100% + 4px);right:0;left:0;background:#fff;border:1px solid #d3dae1;border-radius:9px;max-height:260px;overflow-y:auto;box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.part-ac-item{padding:9px 12px;cursor:pointer;display:flex;justify-content:space-between;gap:8px;align-items:center;border-bottom:1px solid #f0f2f4}
+.part-ac-item:last-child{border-bottom:0}
+.part-ac-item:hover,.part-ac-item:active{background:#f2f5f8}
+.part-ac-item span{color:#687583;font-size:12px;white-space:nowrap}
+.part-ac-empty{padding:10px 12px;color:#687583;font-size:13px}
+.setting-row-disabled{opacity:.6}
+.setting-subhead{font-weight:bold;font-size:13px;color:#687583;margin:12px 0 4px}
 .route-badge-visited{background:#e7f0ff;color:#1f4fa3}
 .route-badge-pending{background:#fff3cd;color:#8a6d1f}
 .route-badge-offsched{background:#fde8d7;color:#a1520c}
@@ -161,6 +171,13 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .simple-empty{padding:14px;text-align:center;color:#687583;background:#f7f9fb;border-radius:10px;font-size:13px}
 .simple-stock-alert{display:block;width:100%;text-align:right;background:#fff3cd;color:#7a5b00;border:none;border-radius:9px;padding:8px 10px;font-size:12px;margin-bottom:8px;font:inherit;cursor:pointer}
 .simple-stock-alert:active{opacity:.8}
+.simple-value-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.simple-value-stat{display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:#eef4ff;border:1px solid #cddcf5;border-radius:12px;padding:10px 12px;font:inherit;text-align:right;cursor:pointer;color:inherit}
+.simple-value-stat:active{opacity:.8}
+.simple-value-stat span{font-size:18px}
+.simple-value-stat b{font-size:11px;color:#345;font-weight:normal}
+.simple-value-stat strong{font-size:16px}
+@media(max-width:480px){.simple-value-row{grid-template-columns:1fr}}
 .simple-order-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .simple-order-grid .simple-tile{min-height:86px}
 .simple-tile.count-tile{gap:2px}

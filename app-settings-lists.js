@@ -11,3 +11,45 @@ function movePartCategory(i,d){let s=settings(),a=s.partCats,j=i+d;if(j<0||j>=a.
 function renameBrand(x){let n=prompt("الاسم الجديد للماركة",x);if(!n||n===x)return;let s=settings(),i=s.brands.indexOf(x);if(i>=0)s.brands[i]=n;put(K.s,s);settingsPage()}
 function renamePartCategory(x){let n=prompt("الاسم الجديد للتصنيف",x);if(!n||n===x)return;let s=settings(),i=s.partCats.indexOf(x);if(i>=0)s.partCats[i]=n;put(K.s,s);settingsPage()}
 
+/* ---------------------------------------------------------------------
+   التصنيف اليدوي لأوامر الشغل (orderTags): بخلاف باقي القوائم في
+   الإعدادات، ده محتاج "إيقاف مؤقت" مش حذف بس — عشان لو تصنيف اتوقف وهو
+   مستخدم فعلاً في أمر شغل قديم، الأمر ده يفضل معروض بنفس التصنيف بدل ما
+   يترجع لـ"بدون تصنيف" في الشاشة. التصنيفات النشطة في s.orderTags (زي ما
+   هي بالظبط من الأول)، والمتوقفة في s.orderTagsDisabled — نقلها بين
+   الاتنين هو الـ"تفعيل/إيقاف". الحذف النهائي بيشيلها من الاتنين مع بعض.
+   --------------------------------------------------------------------- */
+function addOrderTag(){
+  let s=settings(),v=prompt("اكتب اسم التصنيف الجديد:");if(!v||!v.trim())return;v=v.trim();
+  s.orderTags=s.orderTags||[];s.orderTagsDisabled=s.orderTagsDisabled||[];
+  if(s.orderTags.includes(v)||s.orderTagsDisabled.includes(v))return alert("التصنيف ده موجود بالفعل.");
+  s.orderTags.push(v);put(K.s,s);settingsPage();
+}
+function renameOrderTag(oldName){
+  let n=prompt("الاسم الجديد للتصنيف",oldName);if(!n||!n.trim()||n.trim()===oldName)return;n=n.trim();
+  let s=settings();s.orderTags=s.orderTags||[];s.orderTagsDisabled=s.orderTagsDisabled||[];
+  if(s.orderTags.includes(n)||s.orderTagsDisabled.includes(n))return alert("فيه تصنيف تاني بنفس الاسم بالفعل.");
+  let i=s.orderTags.indexOf(oldName);if(i>=0)s.orderTags[i]=n;
+  let j=s.orderTagsDisabled.indexOf(oldName);if(j>=0)s.orderTagsDisabled[j]=n;
+  put(K.s,s);settingsPage();
+}
+function deleteOrderTag(name){
+  if(!confirm(`حذف التصنيف "${name}" نهائيًا من القائمة؟\n\nأوامر الشغل القديمة اللي مستخدمة الاسم ده هتفضل زي ما هي بدون أي تغيير، بس التصنيف مش هيبقى موجود كخيار تاني.`))return;
+  let s=settings();s.orderTags=(s.orderTags||[]).filter(x=>x!==name);s.orderTagsDisabled=(s.orderTagsDisabled||[]).filter(x=>x!==name);
+  put(K.s,s);settingsPage();
+}
+function disableOrderTag(name){
+  let s=settings();s.orderTags=(s.orderTags||[]).filter(x=>x!==name);s.orderTagsDisabled=s.orderTagsDisabled||[];
+  if(!s.orderTagsDisabled.includes(name))s.orderTagsDisabled.push(name);
+  put(K.s,s);settingsPage();
+}
+function enableOrderTag(name){
+  let s=settings();s.orderTagsDisabled=(s.orderTagsDisabled||[]).filter(x=>x!==name);s.orderTags=s.orderTags||[];
+  if(!s.orderTags.includes(name))s.orderTags.push(name);
+  put(K.s,s);settingsPage();
+}
+function moveOrderTag(i,d){
+  let s=settings(),a=s.orderTags||[],j=i+d;if(j<0||j>=a.length)return;
+  [a[i],a[j]]=[a[j],a[i]];s.orderTags=a;put(K.s,s);settingsPage();
+}
+
