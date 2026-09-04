@@ -266,12 +266,6 @@
       el.innerHTML = `
         <section class="simple-home ps-context-target" data-ps-title="ملخص العملاء">
           <div class="simple-summary-title"><b>👤 العملاء</b><span>${all.length} إجمالي ${psActions("ملخص العملاء")}</span></div>
-          <div class="report-cards report-cards-summary">
-            <div class="report-card report-card-btn" onclick="showAllCustomers()" role="button" tabindex="0"><span>👥 إجمالي العملاء</span><b>${all.length}</b></div>
-            <div class="report-card report-card-btn" onclick="showCustomerBucket('active')" role="button" tabindex="0"><span>🛠️ عليه أمر مفتوح</span><b>${cnt("active")}</b></div>
-            <div class="report-card report-card-btn" onclick="showCustomerBucket('workshop')" role="button" tabindex="0"><span>🏭 جهاز في الورشة</span><b>${cnt("workshop")}</b></div>
-            <div class="report-card report-card-btn ${unpaidCount > 0 ? "report-card-warn" : ""}" onclick="showCustomerBucket('unpaid')" role="button" tabindex="0"><span>💰 متبقي غير محصل</span><b>${unpaidCount}</b></div>
-          </div>
           ${unpaidCount > 0
             ? `<div class="simple-line-bar simple-line-warn" onclick="showCustomerBucket('unpaid')" role="button" tabindex="0"><span>💰 ${unpaidCount} عميل عليه متبقي غير محصل</span><b>عرض ›</b></div>`
             : `<div class="simple-line-bar simple-line-ok"><span>✅ لا يوجد عملاء عليهم متبقي غير محصل حاليًا</span></div>`}
@@ -365,12 +359,6 @@
       const types = [...new Set(all.map(d => d.type).filter(Boolean))];
       const recurringCount = cnt("recurring");
       el.innerHTML = `<section class="simple-home ps-context-target" data-ps-title="ملخص الأجهزة"><div class="simple-summary-title"><b>🔧 الأجهزة</b><span>${all.length} إجمالي ${psActions("ملخص الأجهزة")}</span></div>
-        <div class="report-cards report-cards-summary">
-          <div class="report-card report-card-btn" onclick="showAllDevices()" role="button" tabindex="0"><span>🔧 إجمالي الأجهزة</span><b>${all.length}</b></div>
-          <div class="report-card report-card-btn" onclick="showDeviceBucket('active')" role="button" tabindex="0"><span>🛠️ عليه أمر مفتوح</span><b>${cnt("active")}</b></div>
-          <div class="report-card report-card-btn" onclick="showDeviceBucket('workshop')" role="button" tabindex="0"><span>🏭 في الورشة</span><b>${cnt("workshop")}</b></div>
-          <div class="report-card report-card-btn ${recurringCount > 0 ? "report-card-warn" : ""}" onclick="showDeviceBucket('recurring')" role="button" tabindex="0"><span>🔁 متكرر الأعطال</span><b>${recurringCount}</b></div>
-        </div>
         ${recurringCount > 0
           ? `<div class="simple-line-bar simple-line-warn" onclick="showDeviceBucket('recurring')" role="button" tabindex="0"><span>🔁 ${recurringCount} جهاز يتكرر عطله</span><b>عرض ›</b></div>`
           : `<div class="simple-line-bar simple-line-ok"><span>✅ لا توجد أجهزة متكررة العطل حاليًا</span></div>`}
