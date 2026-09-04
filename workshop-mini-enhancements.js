@@ -91,6 +91,18 @@
     const main = typeof addressText === "function" ? addressText(c.mainAddress || {}) : "";
     const extra = typeof addressText === "function" ? addressText(c.extraAddress || {}) : "";
 
+    // إجمالي ما دفعه العميل فعليًا: الأوامر المقفولة/المدفوعة بالكامل تدخل
+    // بإجماليها كاملاً، والأوامر المفتوحة تدخل بالعربون المحصّل منها فقط.
+    // ده بيفرق عن "إجمالي قيمة التعامل" اللي بيشمل حتى المبالغ اللي لسه
+    // ما اتحصلتش، وعن "المتبقي" اللي بيوضح العميل مديون بكام لحد دلوقتي.
+    const totalOrdersValue = rs.reduce(function (a, r) { return a + (+r.total || 0); }, 0);
+    const totalPaid = rs.reduce(function (a, r) {
+      return a + ((r.closed || r.paid) ? (+r.total || 0) : Math.min(+r.deposit || 0, +r.total || 0));
+    }, 0);
+    const totalRemaining = rs.reduce(function (a, r) {
+      return a + (r.closed || r.paid ? 0 : Math.max(0, (+r.total || 0) - (+r.deposit || 0)));
+    }, 0);
+
     el.innerHTML = `
       <div class="profile">
         <div class="page-head">
@@ -107,6 +119,11 @@
           <div class="kv"><b>📍 العنوان الإضافي</b>${esc(extra || "—")}</div>
           <div class="kv"><b>🔧 عدد الأجهزة</b>${ds.length}</div>
           <div class="kv"><b>🛠️ عدد أوامر الشغل</b>${rs.length}</div>
+        </div>
+        <div class="report-cards" style="margin-top:10px">
+          <div class="report-card"><span>📊 إجمالي قيمة التعامل</span><b>${totalOrdersValue.toFixed(2)} ج</b></div>
+          <div class="report-card"><span>💰 إجمالي ما دفعه العميل</span><b>${totalPaid.toFixed(2)} ج</b></div>
+          <div class="report-card"><span>🧾 المتبقي عليه حاليًا</span><b>${totalRemaining.toFixed(2)} ج</b></div>
         </div>
       </div>
 

@@ -10,7 +10,7 @@ function toggleQuickOrderPanel(){
 }
 function initQuickOrder(){
   let sel=document.getElementById("qoCustomer");if(!sel)return;
-  fillCustomer(sel);
+  fillCustomerAutocomplete("qoCustomer");
   fillDevice(document.getElementById("qoDevice"),"");
   sel.onchange=()=>fillDevice(document.getElementById("qoDevice"),sel.value);
   setupQuickForms();
@@ -48,7 +48,7 @@ function saveQuickCustomerHome(){
   if(duplicate&&!confirm(`⚠️ الرقم مسجل بالفعل للعميل: ${duplicate.name||'—'}.\n\nهل تريد إنشاء عميل آخر بنفس الرقم؟`))return;
   let c={id:id(),name,phone,mainAddress:{center:qoCenter.value,village:qoVillage.value,address:"",street:(qoStreet.value||"").trim()},extraAddress:{},createdAt:new Date().toISOString()};
   let a=arr(K.c);a.push(c);if(!saveJSONSafe(K.c,a))return;
-  fillCustomer(document.getElementById("qoCustomer"),c.id);
+  fillCustomerAutocomplete("qoCustomer",c.id);
   fillDevice(document.getElementById("qoDevice"),c.id,"");
   closeQuickAdd('qoCustomerBox');
   document.getElementById('qoCustomerBox').querySelectorAll('input').forEach(x=>x.value='');
@@ -110,7 +110,7 @@ function saveQuickCustomer(){
   let duplicate=duplicateCustomerByPhone(phone);if(duplicate&&!confirm(`⚠️ الرقم مسجل بالفعل للعميل: ${duplicate.name||'—'}.\n\nهل تريد إنشاء عميل آخر بنفس الرقم؟`))return;
   let c={id:id(),name,phone,mainAddress:{center:qcCenter.value,village:qcVillage.value,address:"",street:qcStreet.value.trim()},extraAddress:{},createdAt:new Date().toISOString()};
   let a=arr(K.c);a.push(c);if(!saveJSONSafe(K.c,a))return;
-  fillCustomer(rCustomer,c.id);fillAddress(rAddress,c.id,'main');
+  fillCustomerAutocomplete("rCustomer",c.id);fillAddress(rAddress,c.id,'main');
   closeQuickAdd('quickCustomerBox');
   document.getElementById('quickCustomerBox').querySelectorAll('input').forEach(x=>x.value='');
   fillDevice(rDevice,c.id,'');
@@ -126,7 +126,7 @@ function saveDeviceCustomer(){
   let name=dcName.value.trim(),phone=dcPhone.value.trim();if(!name||!phone)return alert('اكتب اسم العميل والتليفون أولاً.');
   let duplicate=duplicateCustomerByPhone(phone);if(duplicate&&!confirm(`⚠️ الرقم مسجل بالفعل للعميل: ${duplicate.name||'—'}.\n\nهل تريد إنشاء عميل آخر بنفس الرقم؟`))return;
   let c={id:id(),name,phone,mainAddress:{center:dcCenter.value,village:dcVillage.value,address:"",street:dcStreet.value.trim()},extraAddress:{},createdAt:new Date().toISOString()};
-  let a=arr(K.c);a.push(c);if(!saveJSONSafe(K.c,a))return;fillCustomer(dCustomer,c.id);fillAddress(dAddress,c.id,'main');closeQuickAdd('quickDeviceCustomerBox');
+  let a=arr(K.c);a.push(c);if(!saveJSONSafe(K.c,a))return;fillCustomerAutocomplete("dCustomer",c.id);fillAddress(dAddress,c.id,'main');closeQuickAdd('quickDeviceCustomerBox');
 }
 function setupQuickForms(){
   if(document.getElementById('quickCustomerBox'))setupQuickLocation('qc');

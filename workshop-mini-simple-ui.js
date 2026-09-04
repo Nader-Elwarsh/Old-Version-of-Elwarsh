@@ -14,6 +14,8 @@
     requestBucket: "",
     partBucket: "",
     partCategory: "",
+    partsStatsPeriod: "30",
+    partsViewMode: "cards",
     customerBucket: "",
     deviceBucket: ""
   };
@@ -52,6 +54,45 @@
   const deviceRows = () => rows("wf_d");
   const requestRows = () => rows("wf_r");
   const partRows = () => rows("wf_p");
+  const moveRows = () => rows("wf_m");
+
+  /* حركات "الخروج" بس (استهلاك فعلي من المخزن) — بتُستخدم لحساب "عدد مرات
+     استخدام الصنف" في كروت/جدول المخزن. حركات الإرجاع أو التعديل ما بتتحسبش
+     كاستخدام. */
+  function partOutMoves(pid) {
+    return moveRows().filter(m => m.partId === pid && /خروج/.test(m.type || ""));
+  }
+  function partUsageCount(pid) { return partOutMoves(pid).length; }
+
+  const INVENTORY_PERIOD_LABELS = { "7": "آخر 7 أيام", "30": "آخر 30 يوم", "90": "آخر 90 يوم", all: "كل الوقت" };
+
+  function inventoryStatsRangeStart(period) {
+    if (period === "all") return null;
+    const days = +period || 30;
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - (days - 1));
+    return d;
+  }
+
+  function movesInPeriod(period) {
+    const start = inventoryStatsRangeStart(period);
+    return moveRows().filter(m => {
+      if (!start) return true;
+      const t = new Date(m.at).getTime();
+      return !Number.isNaN(t) && t >= start.getTime();
+    });
+  }
+
+  window.setInventoryStatsPeriod = function (period) {
+    state.partsStatsPeriod = period;
+    renderParts();
+  };
+
+  window.setInventoryViewMode = function (mode) {
+    state.partsViewMode = mode === "table" ? "table" : "cards";
+    renderParts();
+  };
 
   function dateKey(value) {
     const d = new Date(value);
@@ -380,14 +421,35 @@
     const all = partRows().filter(p => !p.archived);
 
     if (!state.parts) {
+      const period = state.partsStatsPeriod || "30";
       const cats = {};
       all.forEach(p => {
         const key = p.category || "أخرى";
         cats[key] = (cats[key] || 0) + 1;
       });
-      const low = all.filter(p => (+p.qty || 0) <= (+p.min || 0)).length;
+      const lowParts = all.filter(p => (+p.qty || 0) <= (+p.min || 0))
+        .slice().sort((a, b) => ((+a.qty || 0) - (+a.min || 0)) - ((+b.qty || 0) - (+b.min || 0)));
+      const low = lowParts.length;
       const stockValueBuy = all.reduce((a, p) => a + (+p.qty || 0) * (+p.buy || 0), 0);
       const stockValueUse = all.reduce((a, p) => a + (+p.qty || 0) * (+p.use || 0), 0);
+
+      const periodMoves = movesInPeriod(period);
+      const usage = {};
+      periodMoves.forEach(m => {
+        const e = (usage[m.partId] ||= { qty: 0, count: 0 });
+        e.qty += (+m.qty || 0);
+        e.count += 1;
+      });
+      const topMoved = Object.entries(usage)
+        .sort((a, b) => b[1].qty - a[1].qty)
+        .slice(0, 12)
+        .map(([pid, u]) => ({ p: all.find(x => x.id === pid) || partRows().find(x => x.id === pid), ...u }));
+
+      const periodLabel = INVENTORY_PERIOD_LABELS[period] || INVENTORY_PERIOD_LABELS["30"];
+      const periodButtons = ["7", "30", "90", "all"].map(p =>
+        `<button type="button" class="secondary small-btn ${period === p ? "active-track" : ""}" onclick="setInventoryStatsPeriod('${p}')">${INVENTORY_PERIOD_LABELS[p]}</button>`
+      ).join("");
+
       const cards = Object.entries(cats).slice(0, 6).map(([k,n]) =>
         `<button type="button" class="simple-stat" onclick="showPartsCategory('${k.replace(/'/g,"\\'")}')"><span>${categoryIcon(k)}</span><b>${esc2(k)}</b><strong>${n}</strong><small>قطعة</small></button>`
       ).join("");
@@ -399,8 +461,26 @@
             <button type="button" class="simple-value-stat" onclick="showPartsValueBreakdown('buy')"><span>💰</span><b>قيمة المخزون بالتكلفة</b><strong>${stockValueBuy.toFixed(2)} ج</strong></button>
             <button type="button" class="simple-value-stat" onclick="showPartsValueBreakdown('use')"><span>💵</span><b>قيمة المخزون ببيع الاستخدام</b><strong>${stockValueUse.toFixed(2)} ج</strong></button>
           </div>
+          <div class="report-cards">
+            <div class="report-card"><span>📦 إجمالي الأصناف</span><b>${all.length}</b></div>
+            <div class="report-card"><span>⚠️ أصناف منخفضة</span><b>${low}</b></div>
+            <div class="report-card"><span>🗂️ التصنيفات</span><b>${Object.keys(cats).length}</b></div>
+            <div class="report-card"><span>🔄 حركات ${esc2(periodLabel)}</span><b>${periodMoves.length}</b></div>
+          </div>
+          <div class="bucket-group-label">فترة إحصائية الحركة</div>
+          <div class="report-mode-toggle">${periodButtons}</div>
           ${low > 0 ? `<button type="button" class="simple-stock-alert" onclick="showLowStockParts()">⚠️ ${low} أصناف عند الحد الأدنى أو أقل</button>` : ""}
-          ${cards ? `<div class="simple-stat-grid">${cards}</div>` : `<div class="simple-empty">لا توجد قطع مسجلة.</div>`}
+          <div class="report-mini-grid">
+            <div>
+              <h3 style="margin:0 0 8px;font-size:14px">🔥 الأكثر حركة ${esc2(periodLabel)}</h3>
+              <div class="report-list">${topMoved.length ? topMoved.map(u => `<div class="report-list-row"><span><a href="part.html?id=${u.p?.id || ""}">${esc2(u.p?.name || "قطعة محذوفة")}</a></span><b>${u.qty} قطعة • ${u.count} حركة</b></div>`).join("") : `<div class="report-empty">لا توجد حركات في هذه الفترة.</div>`}</div>
+            </div>
+            <div>
+              <h3 style="margin:0 0 8px;font-size:14px">⚠️ الأصناف المنخفضة (${low})</h3>
+              <div class="report-list">${lowParts.length ? lowParts.map(p => `<div class="report-list-row report-danger"><span><a href="part.html?id=${p.id}">${esc2(p.name)}</a> <small>(${+p.qty || 0}/${+p.min || 0})</small></span><b>${((+p.qty || 0) * (+p.buy || 0)).toFixed(2)} ج</b></div>`).join("") : `<div class="report-empty">لا توجد أصناف منخفضة.</div>`}</div>
+            </div>
+          </div>
+          ${cards ? `<div class="bucket-group-label">حسب التصنيف</div><div class="simple-stat-grid">${cards}</div>` : `<div class="simple-empty">لا توجد قطع مسجلة.</div>`}
           <div class="simple-main-actions">
             ${simpleButton("كل القطع","📦","showAllParts()","primary-tile")}
           </div>
@@ -424,22 +504,57 @@
 
     const listTitle = bucket === "low" ? "أصناف عند الحد الأدنى أو أقل" : bucket === "value" ? `قيمة المخزون ${valueMode === "use" ? "ببيع الاستخدام" : "بالتكلفة"} — ${filtered.reduce((a,p)=>a+(+p.qty||0)*(+p[valueMode]||0),0).toFixed(2)} ج` : cat ? esc2(cat) : "كل القطع";
 
-    el.innerHTML = `
-      <div class="simple-list-head">
-        <b>${listTitle}</b>
-        <button type="button" class="secondary small-btn" onclick="hideAllParts()">رجوع للملخص</button>
-      </div>
-      ${filtered.length ? filtered.map(p => `
+    const viewMode = state.partsViewMode === "table" ? "table" : "cards";
+    const toggleBtn = `<button type="button" class="secondary small-btn" onclick="setInventoryViewMode('${viewMode === "table" ? "cards" : "table"}')">${viewMode === "table" ? "🗂️ عرض كبطاقات" : "📊 عرض كجدول"}</button>`;
+
+    let bodyHtml;
+    if (!filtered.length) {
+      bodyHtml = `<div class="item">لا توجد نتائج.</div>`;
+    } else if (viewMode === "table") {
+      bodyHtml = `<div class="report-table-wrap"><table class="report-table-full">
+        <tr><th>الصنف</th><th>الكمية</th><th>سعر الاستخدام</th><th>الإجمالي</th><th>مرات الاستخدام</th><th>الحالة</th></tr>
+        ${filtered.map(p => {
+          const qty = +p.qty || 0, use = +p.use || 0, total = qty * use;
+          const isLow = qty <= (+p.min || 0);
+          return `<tr class="report-row-clickable" onclick="location.href='part.html?id=${p.id}'">
+            <td><a href="part.html?id=${p.id}">${esc2(p.name)}</a><br><small style="color:#8a97a3">${esc2(p.category || "—")} • ${esc2(p.code || "بدون كود")}</small></td>
+            <td>${qty}</td>
+            <td>${use.toFixed(2)} ج</td>
+            <td>${total.toFixed(2)} ج</td>
+            <td>${partUsageCount(p.id)}</td>
+            <td>${isLow ? '<span class="badge">⚠️ منخفض</span>' : "✅"}</td>
+          </tr>`;
+        }).join("")}
+      </table></div>`;
+    } else {
+      bodyHtml = filtered.map(p => {
+        const qty = +p.qty || 0, use = +p.use || 0, buy = +p.buy || 0;
+        const itemTotal = qty * use;
+        const pct = use > 0 ? ((use - buy) / use * 100) : 0;
+        return `
         <div class="simple-record">
           <div class="simple-record-icon">${categoryIcon(p.category)}</div>
           <div class="simple-record-main">
             <a href="part.html?id=${p.id}"><b>${esc2(p.name)}</b></a>
             <span>${esc2(p.category || "—")} • ${esc2(p.code || "بدون كود")}</span>
-            <small>📍 ${esc2(p.location || "—")} • شراء ${(+p.buy||0).toFixed(2)} ج • استخدام ${(+p.use||0).toFixed(2)} ج • 📈 ${((+p.use||0)>0?(((+p.use||0)-(+p.buy||0))/(+p.use||0)*100):0).toFixed(1)}%${bucket === "value" ? ` • 💰 قيمة الصنف: ${((+p.qty||0)*(+p[valueMode]||0)).toFixed(2)} ج` : ""}</small>
+            <small>📍 ${esc2(p.location || "—")} • شراء ${buy.toFixed(2)} ج • استخدام ${use.toFixed(2)} ج • 📈 ${pct.toFixed(1)}%${bucket === "value" ? ` • قيمة (${valueMode === "use" ? "استخدام" : "تكلفة"}): ${((+p.qty||0)*(+p[valueMode]||0)).toFixed(2)} ج` : ""}</small>
+            <small>💰 إجمالي الصنف: ${itemTotal.toFixed(2)} ج • 🔁 استُخدم ${partUsageCount(p.id)} مرة</small>
           </div>
-          <span class="simple-qty ${(+p.qty||0) <= (+p.min||0) ? "low" : ""}">${+p.qty||0}</span>
+          <span class="simple-qty ${qty <= (+p.min||0) ? "low" : ""}">${qty}</span>
           <div class="simple-record-actions"><a class="secondary small-btn" href="part.html?id=${p.id}">فتح</a><button type="button" class="danger-btn small-btn" onclick="deletePartRecord('${p.id}')">🗑️ حذف</button></div>
-        </div>`).join("") : `<div class="item">لا توجد نتائج.</div>`}`;
+        </div>`;
+      }).join("");
+    }
+
+    el.innerHTML = `
+      <div class="simple-list-head">
+        <b>${listTitle}</b>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${toggleBtn}
+          <button type="button" class="secondary small-btn" onclick="hideAllParts()">رجوع للملخص</button>
+        </div>
+      </div>
+      ${bodyHtml}`;
   };
 
   /* ---------- أوامر الشغل ---------- */
