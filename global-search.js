@@ -24,9 +24,11 @@
     request: "🛠️ أوامر الشغل",
     part: "📦 المخزن",
     task: "📋 المهام",
-    treasury: "💵 الخزنة"
+    treasury: "💵 الخزنة",
+    wallet: "💳 الحسابات والمحافظ",
+    route: "🗺️ خط السير"
   };
-  var CAT_ORDER = ["customer", "device", "request", "part", "task", "treasury"];
+  var CAT_ORDER = ["customer", "device", "request", "part", "task", "treasury", "wallet", "route"];
   var MAX_PER_GROUP = 25;
 
   function safeEsc(v) {
@@ -117,6 +119,41 @@
         title: e.reason || "حركة خزنة",
         sub: [e.category, e.amount ? (+e.amount).toLocaleString("ar-EG") + " ج" : ""].filter(Boolean).join(" • "),
         href: "treasury.html"
+      });
+    });
+
+    // الحسابات/المحافظ: حركات K.wtx (وارد/منصرف على أي محفظة أو تصنيف
+    // مصروف)، بندوّر في السبب/الملاحظة/التصنيف/اسم المحفظة نفسها.
+    (arr(K.wtx) || []).forEach(function (w) {
+      if (w.deleted) return;
+      var hay = norm([w.reason, w.note, w.category, w.wallet].join(" "));
+      if (hay.indexOf(q) === -1) return;
+      results.push({
+        cat: "wallet", icon: w.type === "in" ? "⬅️💳" : "➡️💳",
+        title: w.reason || w.category || "حركة حساب",
+        sub: [w.wallet, w.amount ? (+w.amount).toLocaleString("ar-EG") + " ج" : ""].filter(Boolean).join(" • "),
+        href: w.wallet ? ("wallet.html?type=wallet&name=" + encodeURIComponent(w.wallet)) : "wallets.html"
+      });
+    });
+
+    // خط السير: أوامر الشغل اللي ليها موعد زيارة مجدول ولسه نشطة (مش
+    // مكتملة/مغلقة/ملغية) — بندوّر باسم العميل/العنوان/المركز/القرية
+    // عشان يسهل تلاقي مواعيد يوم أو منطقة معيّنة من نفس البحث الشامل.
+    (arr(K.r) || []).forEach(function (r) {
+      if (!r.visit || r.closed || r.status === "مكتمل" || r.status === "ملغي") return;
+      var cust = customerName(r.customerId);
+      var main = "";
+      var custRec = (arr(K.c) || []).find(function (c) { return c.id === r.customerId; });
+      if (custRec) main = addressText(r.addressKey === "extra" && custRec.extraAddress ? custRec.extraAddress : (custRec.mainAddress || {}));
+      var hay = norm([cust, main, r.no].join(" "));
+      if (hay.indexOf(q) === -1) return;
+      var visitLabel = "";
+      try { visitLabel = new Date(r.visit).toLocaleString("ar-EG", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }); } catch (e) {}
+      results.push({
+        cat: "route", icon: "🗺️",
+        title: cust || "موعد بدون اسم",
+        sub: [visitLabel, main].filter(Boolean).join(" • "),
+        href: "request.html?id=" + encodeURIComponent(r.id)
       });
     });
 
