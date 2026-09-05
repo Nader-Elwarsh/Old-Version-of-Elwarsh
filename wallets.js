@@ -252,8 +252,9 @@ function renderWalletDetail(){
     .sort((a,b)=>new Date((b.date||"")+"T"+(b.time||"00:00"))-new Date((a.date||"")+"T"+(a.time||"00:00"))||new Date(b.createdAt)-new Date(a.createdAt));
   let balance=walletDetailBalance(type,name);
   let icon=isWallet?"💳":(name==="مصروف شخصي"?"🙋":name==="مصروف تشغيل"?"🔧":"🏷️");
+  el.classList.add("ps-context-target");el.setAttribute("data-ps-title",`حساب ${name}`);
   el.innerHTML=`
-    <div class="page-head"><h1 class="profile-title">${icon} ${esc(name)}</h1></div>
+    <div class="page-head"><h1 class="profile-title">${icon} ${esc(name)}</h1><span class="ps-inline-actions no-print" aria-label="إجراءات الطباعة والمشاركة"><button type="button" class="ps-icon-btn" title="طباعة" aria-label="طباعة" onclick="printWorkshopTarget(this)">🖨️</button><button type="button" class="ps-icon-btn" title="مشاركة" aria-label="مشاركة" onclick="shareWorkshopTarget(this)">↗️</button></span></div>
     <div class="treasury-balance ${balance<0?"negative":""}">
       <span>${isWallet?"رصيد المحفظة الحالي":"إجمالي حركات هذا التصنيف عبر كل المحافظ"}</span><b>${balance.toFixed(2)} ج</b>
     </div>
